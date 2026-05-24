@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+:root {
+  --background: #EFEFEF;
+  --foreground: #171717;
+  --text: #3A3A3A;
+  --active-background: #F9F9F9;
+  --text-p2: #666666;
+}
+
+@theme inline {
+  --breakpoint-desktop-1920: 1920px;
+  --breakpoint-desktop: 1536px;
+  --breakpoint-laptop: 1200px;
+  --breakpoint-tablet: 900px;
+  --breakpoint-tablet-600: 600px;
+  --breakpoint-mobile: 375px;
+
+  --font-raleway: var(--font-raleway);
+
+  --color-background: var(--background);
+  --color-active-background: var(--active-background);
+  --color-foreground: var(--foreground);
+
+  --color-text: var(--text);
+  --color-text-p2: var(--text-p2);
+  --color-primary: #FFFFFF;
+
+  --color-accent: #375FFF;
+  --color-button-primary-hover: #002FEA;
+
+  --color-border-outlined: var(--text);
+
+  --color-button-active: #204CFF;
+  --color-button-disabled: #97A9F1;
+
+  --color-error: #EB5757;
+  --color-on-surface: #49454F;
+
+  --color-switch-default: #B5B5B5;
+  --color-switch-disabled: #DCDCDC;
+  --color-switch-handle: var(--active-background);
+  --color-switch-label: #949494;
+
+  --color-dropdown-label: var(--active-background);
+  --color-dropdown-hover: #103AE2;
+  --color-dropdown-label-disabled: #EBEBEB;
+  --color-divider: #D9D9D9;
+
+  --color-nav-background: var(--active-background);
+}
+
+.withTransition {
+    @apply transition-all duration-300 ease-linear
+}
+
+.flexCenter {
+  @apply flex items-center justify-center
+}
+
+body {
+  background: var(--background);
+  color: var(--text);
+  font-family: var(--font-raleway), arial, sans-serif;
+}
