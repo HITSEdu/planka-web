@@ -6,6 +6,14 @@ export const LoginRequestSchema = z.object({
   password: z.string(),
 })
 
+export const RegisterRequestSchema = z.object({
+  name: z.string(),
+  email: z.email(),
+  password: z.string(),
+})
+
+export type RegisterRequestType = z.infer<typeof RegisterRequestSchema>
+
 export type LoginRequestType = z.infer<typeof LoginRequestSchema>
 
 export const LoginResponseSchema = TokenPairSchema

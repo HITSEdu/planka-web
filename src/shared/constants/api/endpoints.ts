@@ -6,6 +6,7 @@ export const endpoints = {
   auth: {
     refresh: `${AUTH_ROOT}/refresh`,
     login: `${AUTH_ROOT}/login`,
+    register: `${AUTH_ROOT}/register`,
     logout: `${AUTH_ROOT}/logout`,
   },
   profile: {
