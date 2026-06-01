@@ -1,3 +1,3 @@
 export const PROFILE_TAGS = {
-  getProfile: 'profile',
+  getProfile: ['profile'],
 }

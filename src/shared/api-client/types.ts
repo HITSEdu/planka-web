@@ -7,6 +7,8 @@ export type RequestOptions<TBody = unknown> = {
   body?: TBody
   headers?: Record<string, string>
   signal?: AbortSignal
+  server?: boolean
+  search?: Record<string, string | number>
 }
 
 export interface IApiClient {

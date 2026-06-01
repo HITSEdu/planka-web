@@ -1,0 +1,24 @@
+{
+  "test": "Test",
+  "nav": {
+    "index": "Home",
+    "profile": "Profile"
+  },
+  "auth": {
+    "form": {
+      "title": "Log in to account",
+      "email": "Email",
+      "password": "Password",
+      "rememberMe": "Remember me",
+      "login": "Login"
+    }
+  },
+  "profile": {
+    "personalInfo": {
+      "root": "Personal Data",
+      "gender": "Gender",
+      "dob": "Date of Birth",
+      "email": "Email"
+    }
+  }
+}

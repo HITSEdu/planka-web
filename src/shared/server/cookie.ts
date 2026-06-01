@@ -1,6 +1,6 @@
 'use server'
 
-import { REFRESH_TOKEN_EXPIRES_DAYS, REFRESH_TOKEN_KEY } from '@constants/api'
+import { ACCESS_TOKEN_KEY, REFRESH_TOKEN_EXPIRES_DAYS, REFRESH_TOKEN_KEY } from '@constants/api'
 import { getExpiresDate } from '@utils'
 import { cookies } from 'next/headers'
 
@@ -14,6 +14,10 @@ const cookieOptions = (value?: number, unit: 'days' | 'minutes' = 'days') => ({
 
 export async function getRefreshToken() {
   return (await cookies()).get(REFRESH_TOKEN_KEY)?.value ?? null
+}
+
+export async function getAccessToken() {
+  return (await cookies()).get(ACCESS_TOKEN_KEY)?.value ?? null
 }
 
 export async function setRefreshTokenToCookies(token: string) {
