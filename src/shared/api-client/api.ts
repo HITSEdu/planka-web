@@ -1,9 +1,8 @@
-// 'use client'
-
 import { IApiClient, RequestOptions } from './types'
 
 import { fetchRefreshSessionInner } from '@api/refresh/inner'
 import { BASE_URL, Status } from '@constants/api'
+import { getAccessToken } from '@server'
 import { accessStorage } from '@utils'
 import z from 'zod'
 
@@ -44,17 +43,29 @@ export class ApiClient implements IApiClient {
     return this.request<T>(url, { ...options, method: 'DELETE' }, schema)
   }
 
-  private async performRequest<TBody>(url: URL, options: RequestOptions<TBody>, token?: string) {
+  private async performRequest<TBody>(
+    url: URL,
+    options: RequestOptions<TBody>,
+    token?: string | null,
+  ) {
+    const isFormData = options.body instanceof FormData
+
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
+      ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
+    }
+
+    let body: BodyInit | undefined
+
+    if (options.body !== undefined && options.method !== 'GET') {
+      body = isFormData ? (options.body as FormData) : JSON.stringify(options.body)
     }
 
     return fetch(url.toString(), {
       method: options.method,
       headers,
-      body: options.body && options.method !== 'GET' ? JSON.stringify(options.body) : undefined,
+      body,
       signal: options.signal,
       cache: 'no-store',
     })
@@ -67,11 +78,19 @@ export class ApiClient implements IApiClient {
   ): Promise<TResponse> {
     const url = new URL(endpoint, this.baseUrl)
 
-    let token = accessStorage.get()
+    if (options.search) {
+      const stringOptions: Record<string, string> = Object.fromEntries(
+        Object.entries(options.search).map(([key, value]) => [key, String(value)]),
+      )
+
+      url.search = new URLSearchParams(stringOptions).toString()
+    }
+
+    let token = !!options.server ? await getAccessToken() : accessStorage.get()
 
     let response = await this.performRequest(url, options, token)
 
-    if (response.status === 401 && typeof 'window' !== undefined) {
+    if (response.status === 401 && typeof window !== undefined) {
       const refreshedToken = await fetchRefreshSessionInner()
 
       if (!refreshedToken) {

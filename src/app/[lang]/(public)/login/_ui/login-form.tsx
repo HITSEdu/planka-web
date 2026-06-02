@@ -3,6 +3,7 @@
 import { loginAction } from '@actions/auth-actions'
 import { LoginRequestSchema, LoginRequestType } from '@api/auth-api/dto'
 import { Routes } from '@constants/routes'
+import { useDictionary } from '@contexts/dictionary-context'
 import { useAppForm } from '@hooks/use-app-form'
 import { BlockWrapper } from '@ui/molecules'
 import { accessStorage } from '@utils'
@@ -10,6 +11,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
 export const LoginForm = () => {
+  const dict = useDictionary().auth.form
   const router = useRouter()
 
   const defaultValues: LoginRequestType = {
@@ -35,7 +37,7 @@ export const LoginForm = () => {
   })
 
   return (
-    <BlockWrapper title='Вход в аккаунт'>
+    <BlockWrapper title={dict.title}>
       <form
         className="flex flex-col gap-4 w-full"
         onSubmit={(e) => {
@@ -44,15 +46,15 @@ export const LoginForm = () => {
         }}
       >
         <form.AppField name="email">
-          {(field) => <field.TextField label='Email' />}
+          {(field) => <field.TextField label={dict.email} />}
         </form.AppField>
 
         <form.AppField name="password">
-          {(field) => <field.TextField label='Пароль' />}
+          {(field) => <field.TextField label={dict.password} />}
         </form.AppField>
 
         <form.AppForm>
-          <form.SubscribeButton>Войти</form.SubscribeButton>
+          <form.SubscribeButton>{dict.login}</form.SubscribeButton>
         </form.AppForm>
       </form>
     </BlockWrapper>

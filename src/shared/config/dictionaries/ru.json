@@ -1,0 +1,24 @@
+{
+  "test": "Тест",
+  "nav": {
+    "index": "Главная",
+    "profile": "Профиль"
+  },
+  "auth": {
+    "form": {
+      "title": "Вход в аккаунт",
+      "email": "Электронная почта",
+      "password": "Пароль",
+      "rememberMe": "Запомнить меня",
+      "login": "Войти"
+    }
+  },
+  "profile": {
+    "personalInfo": {
+      "root": "Личные данные",
+      "gender": "Пол",
+      "dob": "Дата рождения",
+      "email": "Email"
+    }
+  }
+}

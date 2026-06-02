@@ -10,6 +10,7 @@ import { NextResponse } from 'next/server'
 export async function POST() {
   try {
     const refreshToken = await getRefreshToken()
+
     if (!refreshToken) {
       return NextResponse.json({ error: Status.Unauthorized }, { status: 401 })
     }

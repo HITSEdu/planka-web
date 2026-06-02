@@ -48,6 +48,7 @@
   --color-divider: #D9D9D9;
 
   --color-nav-background: var(--active-background);
+  --color-hover-background: #3A3A3A05;
 }
 
 .withTransition {

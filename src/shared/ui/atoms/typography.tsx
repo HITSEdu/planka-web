@@ -1,7 +1,7 @@
 import { cn } from '@utils'
-import { ReactNode } from 'react'
+import { ComponentPropsWithoutRef, ReactNode } from 'react'
 
-type Props = {
+export interface Props extends ComponentPropsWithoutRef<'p'> {
   variant: 'h1' | 'h2' | 'h3' | 'h4' | 'p1' | 'p2' | 'button'
   className?: string
   children?: ReactNode
@@ -27,11 +27,14 @@ export const variantClasses = {
   button: 'text-[0.875rem] tablet:text-[1rem] font-normal leading-[1.1875] uppercase tracking-[3%]',
 }
 
-export const Typography = ({ variant, children, className }: Props) => {
+export const Typography = ({ variant, children, className, ...props }: Props) => {
   const Component = variantMap[variant]
 
   return (
-    <Component className={cn('lining-nums proportional-nums', variantClasses[variant], className)}>
+    <Component
+      className={cn('lining-nums proportional-nums', variantClasses[variant], className)}
+      {...props}
+    >
       {children}
     </Component>
   )

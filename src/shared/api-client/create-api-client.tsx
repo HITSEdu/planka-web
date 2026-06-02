@@ -1,5 +1,3 @@
-// 'use client'
-
 import { ApiClient } from './api'
 
 import { Status } from '@constants/api'
