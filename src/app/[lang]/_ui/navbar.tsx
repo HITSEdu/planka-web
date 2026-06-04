@@ -6,7 +6,6 @@ import { toggleNavbarEventName } from '@constants/events'
 import { Routes } from '@constants/routes'
 import { useDictionary } from '@contexts/dictionary-context'
 import { ChevronRight, UserMenu } from '@ui/atoms/icons'
-import Image from 'next/image'
 import Link from 'next/link'
 import { useSelectedLayoutSegment } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -96,14 +95,9 @@ export const Navbar = () => {
 
         <nav className="h-full">
           <div className="h-38 flex justify-center pt-4 items-start">
-              <Image
-                src={'TODO'}
-                alt="avatar"
-                width={65}
-                height={65}
-                loading="eager"
-                className="rounded-full object-contain"
-              />
+            <div className="size-[65px] rounded-full bg-accent/10 text-accent flexCenter">
+              <UserMenu width={34} height={34} />
+            </div>
           </div>
 
           <ul className="flex flex-col gap-2">

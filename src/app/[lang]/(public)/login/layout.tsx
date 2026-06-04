@@ -1,4 +1,4 @@
-import { Header } from '../_ui'
+import { Header } from '../../_ui'
 
 export default async function Layout({ children }: LayoutProps<'/[lang]'>) {
   return (
