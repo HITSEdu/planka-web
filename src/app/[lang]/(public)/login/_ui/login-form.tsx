@@ -1,11 +1,13 @@
 'use client'
 
+import { AuthCard, AuthField, AuthLinkButton, AuthSubmitButton } from '../../_ui'
+
 import { loginAction } from '@actions/auth-actions'
 import { LoginRequestSchema, LoginRequestType } from '@api/auth-api/dto'
 import { Routes } from '@constants/routes'
 import { useDictionary } from '@contexts/dictionary-context'
 import { useAppForm } from '@hooks/use-app-form'
-import { BlockWrapper } from '@ui/molecules'
+import { useLocalizedPath } from '@hooks/use-localized-path'
 import { accessStorage } from '@utils'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
@@ -13,6 +15,7 @@ import { toast } from 'sonner'
 export const LoginForm = () => {
   const dict = useDictionary().auth.form
   const router = useRouter()
+  const toLocalized = useLocalizedPath()
 
   const defaultValues: LoginRequestType = {
     email: '',
@@ -37,26 +40,32 @@ export const LoginForm = () => {
   })
 
   return (
-    <BlockWrapper title={dict.title}>
+    <AuthCard title="Вход" className="tablet:min-h-[min(92vh,1130px)] desktop:max-w-[810px]">
       <form
-        className="flex flex-col gap-4 w-full"
+        className="relative z-20 flex min-h-0 flex-1 flex-col gap-6"
         onSubmit={(e) => {
           e.preventDefault()
           void form.handleSubmit()
         }}
       >
         <form.AppField name="email">
-          {(field) => <field.TextField label={dict.email} />}
+          {(field) => <AuthField field={field} label="Email" />}
         </form.AppField>
 
         <form.AppField name="password">
-          {(field) => <field.TextField label={dict.password} />}
+          {(field) => <AuthField field={field} label={dict.password} type="password" />}
         </form.AppField>
 
-        <form.AppForm>
-          <form.SubscribeButton>{dict.login}</form.SubscribeButton>
-        </form.AppForm>
+        <div className="mt-auto flex flex-col gap-3 pt-8">
+          <form.AppForm>
+            <AuthSubmitButton>{dict.login}</AuthSubmitButton>
+          </form.AppForm>
+          <div className="h-1 rounded-full bg-white" />
+          <AuthLinkButton href={toLocalized(Routes.Register)}>
+            Еще нет аккаунта? Зарегистрироваться
+          </AuthLinkButton>
+        </div>
       </form>
-    </BlockWrapper>
+    </AuthCard>
   )
 }
