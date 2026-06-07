@@ -42,7 +42,7 @@ export const RegisterForm = () => {
   return (
     <AuthCard title="Регистрация" className="tablet:min-h-[min(92vh,1130px)] desktop:max-w-[810px]">
       <Image
-        src="/registerFlowers/whiteFlower.png"
+        src="/assets/auth/register/white-flower.png"
         alt=""
         width={1518}
         height={1246}

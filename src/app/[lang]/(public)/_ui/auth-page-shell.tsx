@@ -9,6 +9,18 @@ type Props = {
   children: ReactNode
 }
 
+const authAssets = {
+  login: {
+    desktopBlue: '/assets/auth/login/blue-blur-flower.png',
+    desktopWhite: '/assets/auth/login/white-form-flower.png',
+    mobile: '/assets/auth/mobile/login-flower.png',
+  },
+  register: {
+    desktopBlue: '/assets/auth/register/blue-flower.png',
+    mobile: '/assets/auth/mobile/register-flower.png',
+  },
+} as const
+
 const contentClasses = {
   login:
     'items-start justify-start px-4 pb-8 pt-[430px] tablet:items-center tablet:justify-end tablet:px-10 tablet:py-6 desktop:px-16',
@@ -36,7 +48,7 @@ const MobileHero = ({ variant }: { variant: Variant }) => (
       Planka
     </div>
     <Image
-      src={variant === 'login' ? '/mobile/login.png' : '/mobile/register.png'}
+      src={variant === 'login' ? authAssets.login.mobile : authAssets.register.mobile}
       alt=""
       width={variant === 'login' ? 780 : 765}
       height={variant === 'login' ? 976 : 863}
@@ -69,7 +81,7 @@ const PlankaWord = ({ variant }: { variant: Variant }) => (
 const LoginFlowers = () => (
   <>
     <Image
-      src="/loginFlowers/blueBlurFlower.png"
+      src={authAssets.login.desktopBlue}
       alt=""
       width={590}
       height={537}
@@ -78,7 +90,7 @@ const LoginFlowers = () => (
       unoptimized
     />
     <Image
-      src="/loginFlowers/whiteFormFlower.png"
+      src={authAssets.login.desktopWhite}
       alt=""
       width={2255}
       height={1574}
@@ -92,7 +104,7 @@ const LoginFlowers = () => (
 const RegisterFlowers = () => (
   <>
     <Image
-      src="/registerFlowers/blueFlower.png"
+      src={authAssets.register.desktopBlue}
       alt=""
       width={1472}
       height={832}
