@@ -17,6 +17,8 @@
   --breakpoint-mobile: 375px;
 
   --font-raleway: var(--font-raleway);
+  --font-open-sans: var(--font-open-sans);
+  --font-syncopate: var(--font-syncopate);
 
   --color-background: var(--background);
   --color-active-background: var(--active-background);
@@ -63,4 +65,14 @@ body {
   background: var(--background);
   color: var(--text);
   font-family: var(--font-raleway), arial, sans-serif;
+}
+
+.auth-input:-webkit-autofill,
+.auth-input:-webkit-autofill:hover,
+.auth-input:-webkit-autofill:focus,
+.auth-input:-webkit-autofill:active {
+  -webkit-text-fill-color: #ffffff;
+  caret-color: #ffffff;
+  box-shadow: 0 0 0 1000px transparent inset;
+  transition: background-color 999999s ease-in-out 0s;
 }

@@ -6,13 +6,24 @@ import { DictionaryProvider } from '@contexts/dictionary-context'
 import { QueryProvider } from '@contexts/query-client-provider'
 import { Toaster } from '@ui/atoms'
 import { cn } from '@utils'
-import { Raleway } from 'next/font/google'
+import { Open_Sans, Raleway, Syncopate } from 'next/font/google'
 import '../globals.css'
 import { notFound } from 'next/navigation'
 
 const raleway = Raleway({
   variable: '--font-raleway',
   subsets: ['latin', 'cyrillic'],
+})
+
+const openSans = Open_Sans({
+  variable: '--font-open-sans',
+  subsets: ['latin', 'cyrillic'],
+})
+
+const syncopate = Syncopate({
+  variable: '--font-syncopate',
+  subsets: ['latin'],
+  weight: ['700'],
 })
 
 export const metadata: Metadata = {
@@ -27,7 +38,10 @@ export default async function RootLayout({ params, children }: LayoutProps<'/[la
   const dict = await getDictionary(lang)
 
   return (
-    <html lang={lang} className={`${raleway.variable} h-full antialiased`}>
+    <html
+      lang={lang}
+      className={`${raleway.variable} ${openSans.variable} ${syncopate.variable} h-full antialiased`}
+    >
       <QueryProvider>
         <body className={cn('min-h-screen flex', pagePaddings)}>
           <DictionaryProvider
