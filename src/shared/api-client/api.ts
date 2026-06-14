@@ -90,7 +90,7 @@ export class ApiClient implements IApiClient {
 
     let response = await this.performRequest(url, options, token)
 
-    if (response.status === 401 && typeof window !== undefined) {
+    if (!options.skipRefresh && response.status === 401 && typeof window !== undefined) {
       const refreshedToken = await fetchRefreshSessionInner()
 
       if (!refreshedToken) {

@@ -2,7 +2,11 @@
   "test": "Тест",
   "nav": {
     "index": "Главная",
-    "profile": "Профиль"
+    "profile": "Профиль",
+    "logout": {
+      "button": "Выйти",
+      "error": "Ошибка выхода!"
+    }
   },
   "auth": {
     "form": {

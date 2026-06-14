@@ -24,10 +24,3 @@ export const registerAction = withAction(async (dto: RegisterRequestType) => {
     accessToken: data.accessToken,
   }
 })
-
-export const logoutAction = withAction(async () => {
-  await authApi.logout()
-  await clearRefreshTokenFromCookies()
-
-  redirect(getRelativeRoute(Routes.Login))
-})
