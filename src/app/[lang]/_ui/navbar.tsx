@@ -1,5 +1,7 @@
 'use client'
 
+import { LogoutButton } from './logout-button'
+
 import { useLocalizedPath } from '@/shared/hooks'
 import { cn } from '@/shared/utils'
 import { toggleNavbarEventName } from '@constants/events'
@@ -131,6 +133,7 @@ export const Navbar = () => {
                 </Link>
               </li>
             ))}
+            <LogoutButton open={open} />
           </ul>
         </nav>
       </aside>

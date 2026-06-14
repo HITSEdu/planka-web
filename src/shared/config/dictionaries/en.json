@@ -2,7 +2,11 @@
   "test": "Test",
   "nav": {
     "index": "Home",
-    "profile": "Profile"
+    "profile": "Profile",
+    "logout": {
+      "button": "Log out",
+      "error": "Log out error!"
+    }
   },
   "auth": {
     "form": {

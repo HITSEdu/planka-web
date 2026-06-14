@@ -9,6 +9,7 @@ export type RequestOptions<TBody = unknown> = {
   signal?: AbortSignal
   server?: boolean
   search?: Record<string, string | number>
+  skipRefresh?: boolean
 }
 
 export interface IApiClient {

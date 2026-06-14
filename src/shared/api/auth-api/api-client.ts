@@ -11,5 +11,5 @@ export const authApi = {
     api.post(endpoints.auth.register, dto, LoginResponseSchema),
   ),
 
-  logout: withApi((api) => api.post(endpoints.auth.logout)),
+  logout: withApi((api) => api.post(endpoints.auth.logout, undefined, undefined, {skipRefresh: true})),
 }
