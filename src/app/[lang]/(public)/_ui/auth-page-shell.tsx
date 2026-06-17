@@ -23,7 +23,7 @@ const authAssets = {
 
 const contentClasses = {
   login:
-    'items-start justify-start px-4 pb-8 pt-[430px] tablet:items-center tablet:justify-end tablet:px-10 tablet:py-6 desktop:px-16',
+    'items-start justify-start px-4 pb-8 pt-[430px] tablet:items-center tablet:justify-end tablet:px-10 tablet:py-6 desktop:px-12',
   register:
     'items-start justify-start px-4 pb-8 pt-[430px] tablet:items-center tablet:justify-start tablet:px-10 tablet:py-6 desktop:px-16',
 }
@@ -68,10 +68,11 @@ const PlankaWord = ({ variant }: { variant: Variant }) => (
   <div
     className={cn(
       'pointer-events-none absolute z-40 hidden font-syncopate font-bold uppercase leading-[1.3] text-white tablet:block',
+      'h-fit w-fit origin-center whitespace-nowrap',
       'text-[72px] desktop:text-[112px] desktop-1920:text-[128px]',
       variant === 'login'
-        ? 'left-[-130px] top-1/2 -translate-y-1/2 -rotate-90 desktop:left-[-190px]'
-        : 'right-[-130px] top-1/2 -translate-y-1/2 rotate-90 desktop:right-[-190px]',
+        ? 'left-6 top-12 rotate-180 [writing-mode:vertical-rl] desktop:left-0'
+        : 'right-[-125px] top-1/2 -translate-y-1/2 rotate-90 desktop:right-[-185px]',
     )}
   >
     Planka
@@ -85,7 +86,7 @@ const LoginFlowers = () => (
       alt=""
       width={590}
       height={537}
-      className="pointer-events-none absolute -right-6 -top-14 z-20 hidden w-[32vw] min-w-[260px] max-w-[560px] tablet:block"
+      className="pointer-events-none absolute -right-6 -top-14 z-0 hidden w-[32vw] min-w-[260px] max-w-[560px] tablet:block"
       priority
       unoptimized
     />
@@ -94,7 +95,7 @@ const LoginFlowers = () => (
       alt=""
       width={2255}
       height={1574}
-      className="pointer-events-none absolute -bottom-[5px] left-20 z-30 hidden w-[60vw] min-w-[620px] max-w-[1120px] tablet:block"
+      className="pointer-events-none absolute bottom-0 left-0 z-0 hidden w-[66vw] min-w-[760px] max-w-[1160px] tablet:block"
       priority
       unoptimized
     />

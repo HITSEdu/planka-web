@@ -1,4 +1,5 @@
 export { AuthCard } from './auth-card'
+export { getAuthErrorMessage } from './auth-errors'
 export { AuthField } from './auth-field'
 export { AuthLinkButton, AuthSubmitButton } from './auth-actions'
 export { AuthPageShell } from './auth-page-shell'

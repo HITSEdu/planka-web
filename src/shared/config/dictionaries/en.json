@@ -14,7 +14,22 @@
       "email": "Email",
       "password": "Password",
       "rememberMe": "Remember me",
-      "login": "Login"
+      "login": "Login",
+      "registerTitle": "Register",
+      "register": "Register",
+      "loginLink": "Already have an account? Log in",
+      "registerLink": "No account yet? Register"
+    },
+    "errors": {
+      "required": "Fill in this field",
+      "email": "Enter a valid email",
+      "passwordRequired": "Enter your password",
+      "passwordMin": "Password must be at least 8 characters",
+      "invalidCredentials": "Invalid email or password",
+      "userExists": "A user with this email already exists",
+      "network": "Could not complete the request. Try again later",
+      "validation": "Check the form fields",
+      "unknown": "Something went wrong. Try again"
     }
   },
   "profile": {
