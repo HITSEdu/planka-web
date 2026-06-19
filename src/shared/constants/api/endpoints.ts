@@ -12,4 +12,7 @@ export const endpoints = {
   profile: {
     profile: PROFILE_ROOT,
   },
+  events: {
+    root: '../events',
+  },
 } as const

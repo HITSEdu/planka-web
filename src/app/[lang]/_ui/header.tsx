@@ -38,6 +38,10 @@ export const Header = () => {
 
   const currentLocale = locales.find((el) => el.code === pathname.split('/')[1]) ?? locales[0]
 
+  if (segment === Routes.Profile) {
+    return null
+  }
+
   const changeLocale = (nextLocale: string) => {
     const segments = pathname.split('/')
 
