@@ -13,17 +13,47 @@ export const getLocaleCode = (locale: 'ru' | 'en') => (locale === 'ru' ? 'ru-RU'
 export const getEventStartDate = (event: EventType) => new Date(event.starts_at ?? event.created_at)
 
 export const getEventEndDate = (event: EventType) => {
+  const startDate = getEventStartDate(event)
+
   if (event.ends_at) {
-    return new Date(event.ends_at)
+    const endDate = new Date(event.ends_at)
+
+    if (endDate > startDate) {
+      return endDate
+    }
   }
 
-  const startDate = getEventStartDate(event)
   const endDate = new Date(startDate)
 
   endDate.setHours(endDate.getHours() + 1)
 
   return endDate
 }
+
+export const toFullCalendarEventRange = (event: EventType) => {
+  const start = getEventStartDate(event)
+  let end = getEventEndDate(event)
+
+  if (end <= start) {
+    end = new Date(start)
+    end.setHours(end.getHours() + 1)
+  }
+
+  return {
+    start,
+    end,
+    allDay: false as const,
+  }
+}
+
+export const formatScheduleTime = (value: Date, localeCode: string) =>
+  new Intl.DateTimeFormat(localeCode, {
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(value)
+
+export const formatScheduleTimeRange = (start: Date, end: Date, localeCode: string) =>
+  `${formatScheduleTime(start, localeCode)} – ${formatScheduleTime(end, localeCode)}`
 
 export const getInitialScheduleDate = (events: EventType[]) => {
   if (!events.length) {
@@ -123,6 +153,21 @@ export const applyScheduleEventStyle = (
     borderColor: palette[0],
     fontFamily: 'var(--font-raleway), arial, sans-serif',
   }
+}
+
+export const applyScheduleEventElementStyle = (
+  element: HTMLElement,
+  tagColors: string[],
+  focus: number,
+) => {
+  const palette = tagColors.length ? tagColors : [fallbackResource.color]
+  const background = getTagColorGradient(palette, focus)
+  const textColor = getContrastTextColor(palette[0])
+
+  element.style.background = background
+  element.style.color = textColor
+  element.style.borderColor = palette[0]
+  element.style.fontFamily = 'var(--font-raleway), arial, sans-serif'
 }
 
 export const buildScheduleTagStripChildren = (tagColors: string[], focus: number) => {

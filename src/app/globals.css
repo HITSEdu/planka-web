@@ -453,6 +453,98 @@ body {
   color: inherit !important;
 }
 
+.schedule-fullcalendar {
+  --fc-border-color: var(--schedule-grid-line);
+  --fc-page-bg-color: transparent;
+  --fc-neutral-bg-color: var(--schedule-surface-muted);
+  --fc-neutral-text-color: var(--schedule-muted-text);
+  --fc-list-event-hover-bg-color: var(--schedule-surface-muted);
+  --fc-today-bg-color: var(--schedule-surface-today);
+  --fc-now-indicator-color: var(--accent);
+  --fc-event-bg-color: transparent;
+  --fc-event-border-color: transparent;
+  --fc-event-text-color: inherit;
+}
+
+.schedule-fullcalendar .fc {
+  height: 100%;
+  font-family: var(--font-raleway), arial, sans-serif;
+  color: var(--schedule-body-text);
+}
+
+.schedule-fullcalendar .fc-theme-standard td,
+.schedule-fullcalendar .fc-theme-standard th {
+  border-color: var(--schedule-grid-line);
+}
+
+.schedule-fullcalendar .fc-col-header-cell-cushion,
+.schedule-fullcalendar .fc-daygrid-day-number,
+.schedule-fullcalendar .fc-timegrid-axis-cushion {
+  color: var(--schedule-header-text);
+  font-weight: 600;
+}
+
+.schedule-fullcalendar .fc-timegrid-slot-label-cushion {
+  color: var(--schedule-muted-text);
+  font-weight: 500;
+}
+
+.schedule-fullcalendar .fc-daygrid-day.fc-day-today,
+.schedule-fullcalendar .fc-timegrid-col.fc-day-today {
+  background: var(--schedule-surface-today) !important;
+}
+
+.schedule-fullcalendar .fc-timegrid-col,
+.schedule-fullcalendar .fc-daygrid-day-frame,
+.schedule-fullcalendar .fc-scrollgrid {
+  background: var(--schedule-surface);
+}
+
+.schedule-fullcalendar .fc-col-header,
+.schedule-fullcalendar .fc-timegrid-axis,
+.schedule-fullcalendar .fc-scrollgrid-section-header > * {
+  background: var(--schedule-surface-muted) !important;
+}
+
+.schedule-fullcalendar .fc-event {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  border-radius: 12px !important;
+  overflow: hidden;
+}
+
+.schedule-fullcalendar .fc-timegrid-event-harness > .fc-timegrid-event {
+  height: 100%;
+  min-height: 100%;
+}
+
+.schedule-fullcalendar .fc-event-main {
+  height: 100%;
+  min-height: 100%;
+  padding: 2px 3px;
+  overflow: hidden;
+}
+
+.schedule-fullcalendar .fc-timegrid-event .schedule-calendar-event {
+  height: 100%;
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
+.schedule-fullcalendar .fc-daygrid-event {
+  margin-top: 2px;
+}
+
+.schedule-fullcalendar .fc-more-link {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.schedule-fullcalendar .fc .fc-daygrid-day-top {
+  color: var(--schedule-header-text);
+}
+
 .schedule-calendar-event,
 .schedule-timeline-event {
   display: flex;
@@ -500,5 +592,15 @@ body {
   color: inherit;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.schedule-calendar-event-time {
+  font-family: var(--font-raleway), arial, sans-serif;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: inherit;
+  opacity: 0.92;
   white-space: nowrap;
 }

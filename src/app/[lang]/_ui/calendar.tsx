@@ -1,36 +1,39 @@
 'use client'
 
-import './bryntum-theme'
+import './fullcalendar-theme'
 
 import {
   addDays,
   addMonths,
-  applyScheduleEventStyle,
+  applyScheduleEventElementStyle,
   buildScheduleTagStripChildren,
-  getEventEndDate,
-  getEventResources,
-  getEventStartDate,
+  formatScheduleTimeRange,
   getEventTagColors,
   getInitialScheduleDate,
   getLocaleCode,
-  getScheduleResources,
   startOfWeek,
+  toFullCalendarEventRange,
 } from './schedule-view-helpers'
 
 import type { EventType, TagType } from '@dto'
+import type {
+  DatesSetArg,
+  EventClickArg,
+  EventContentArg,
+  EventDropArg,
+  EventMountArg,
+} from '@fullcalendar/core'
+import type { EventResizeDoneArg } from '@fullcalendar/interaction'
 
 import { useLocale } from '@contexts/dictionary-context'
+import ruLocale from '@fullcalendar/core/locales/ru'
+import dayGridPlugin from '@fullcalendar/daygrid'
+import interactionPlugin from '@fullcalendar/interaction'
+import FullCalendar from '@fullcalendar/react'
+import timeGridPlugin from '@fullcalendar/timegrid'
 import { cn } from '@utils'
 import { CalendarDays, ChevronLeft, ChevronRight, PanelsTopLeft, Rows3 } from 'lucide-react'
-import dynamic from 'next/dynamic'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-
-const BryntumCalendar = dynamic(
-  () => import('@bryntum/calendar-react').then((mod) => mod.BryntumCalendar),
-  {
-    ssr: false,
-  },
-)
 
 type EventDateChangeInput = {
   id: string
@@ -48,34 +51,10 @@ type Props = {
 
 type CalendarMode = 'day' | 'week' | 'month'
 
-type CalendarEventModelShape = {
-  id?: string | number
-  name?: string
-}
-
-type CalendarEventClickContext = {
-  eventRecord: {
-    id?: string | number
-  }
-}
-
-type CalendarDateChangeContext = {
-  date: Date
-}
-
-type CalendarDragEndContext = {
-  eventRecord: {
-    id?: string | number
-    startDate: Date | string
-    endDate: Date | string
-  }
-}
-
-type CalendarEventRendererContext = {
-  eventRecord: CalendarEventModelShape
-  renderData: {
-    style?: Record<string, string>
-  }
+const VIEW_BY_MODE: Record<CalendarMode, string> = {
+  day: 'timeGridDay',
+  week: 'timeGridWeek',
+  month: 'dayGridMonth',
 }
 
 const shiftCalendarDate = (value: Date, mode: CalendarMode, direction: number) => {
@@ -112,9 +91,60 @@ const formatCalendarTitle = (value: Date, mode: CalendarMode, localeCode: string
   return `${formatter.format(startDate)} - ${formatter.format(endDate)}`
 }
 
+const resolveEventRange = (start: Date | null, end: Date | null) => {
+  if (!start) {
+    throw new Error('Missing start date')
+  }
+
+  let resolvedEnd =
+    end ??
+    (() => {
+      const fallbackEnd = new Date(start)
+      fallbackEnd.setHours(fallbackEnd.getHours() + 1)
+      return fallbackEnd
+    })()
+
+  if (resolvedEnd <= start) {
+    resolvedEnd = new Date(start)
+    resolvedEnd.setHours(resolvedEnd.getHours() + 1)
+  }
+
+  return {
+    starts_at: start.toISOString(),
+    ends_at: resolvedEnd.toISOString(),
+  }
+}
+
+type CalendarEventContentProps = {
+  title: string
+  tagColors: string[]
+  focus: number
+  timeText?: string
+}
+
+function CalendarEventContent({ title, tagColors, focus, timeText }: CalendarEventContentProps) {
+  const swatches = buildScheduleTagStripChildren(tagColors, focus)
+
+  return (
+    <div className="schedule-calendar-event">
+      <div className="schedule-event-tag-strip">
+        {swatches.map((swatch, index) => (
+          <span
+            key={`${swatch.className}-${index}`}
+            className={swatch.className}
+            style={swatch.style}
+          />
+        ))}
+      </div>
+      {timeText ? <div className="schedule-calendar-event-time">{timeText}</div> : null}
+      <div className="schedule-calendar-event-title">{title}</div>
+    </div>
+  )
+}
+
 export default function ProfileCalendar({
   events,
-  tags,
+  tags: _tags,
   onEventClick,
   onEventDateChange,
   themeKey = 'dark',
@@ -136,6 +166,7 @@ export default function ProfileCalendar({
           month: 'Month',
         }
 
+  const calendarRef = useRef<FullCalendar>(null)
   const initialDate = useMemo(() => getInitialScheduleDate(events), [events])
   const [mode, setMode] = useState<CalendarMode>('week')
   const [currentDate, setCurrentDate] = useState(initialDate)
@@ -144,80 +175,140 @@ export default function ProfileCalendar({
   useEffect(() => {
     if (!didNavigate.current) {
       setCurrentDate(initialDate)
+      calendarRef.current?.getApi().gotoDate(initialDate)
     }
   }, [initialDate])
 
-  const resources = useMemo(() => getScheduleResources(tags, events), [events, tags])
+  const calendarEvents = useMemo(
+    () =>
+      events.map((event) => {
+        const range = toFullCalendarEventRange(event)
 
-  const calendarEvents = useMemo(() => {
-    const defaultResourceId = resources[0]?.id
+        return {
+          id: event.id,
+          title: event.title,
+          start: range.start,
+          end: range.end,
+          allDay: range.allDay,
+          extendedProps: {
+            tagColors: getEventTagColors(event),
+            focus: event.focus,
+          },
+        }
+      }),
+    [events],
+  )
 
-    return events.map((event) => {
-      const primaryResource = getEventResources(event)[0]
+  const scrollTime = useMemo(() => {
+    if (!events.length) {
+      return '08:00:00'
+    }
 
-      return {
-        id: event.id,
-        name: event.title,
-        startDate: getEventStartDate(event),
-        endDate: getEventEndDate(event),
-        resourceId: primaryResource?.id ?? defaultResourceId,
-        tagColors: getEventTagColors(event),
-        focus: event.focus,
-      }
-    })
-  }, [events, resources])
+    const start = toFullCalendarEventRange(events[0]).start
+    const pad = (value: number) => String(value).padStart(2, '0')
 
-  const persistEventDates = useCallback(
-    async ({ eventRecord }: CalendarDragEndContext) => {
+    return `${pad(start.getHours())}:${pad(start.getMinutes())}:00`
+  }, [events])
+
+  const persistEventChange = useCallback(
+    async (eventId: string, start: Date | null, end: Date | null, revert: () => void) => {
       if (!onEventDateChange) {
-        return true
+        return
       }
-
-      const eventId = String(eventRecord.id)
 
       try {
+        const range = resolveEventRange(start, end)
         await onEventDateChange({
           id: eventId,
-          starts_at: new Date(eventRecord.startDate).toISOString(),
-          ends_at: new Date(eventRecord.endDate).toISOString(),
+          ...range,
         })
-        return true
       } catch {
-        return false
+        revert()
       }
     },
     [onEventDateChange],
   )
 
-  const renderCalendarEvent = useCallback(
-    ({ eventRecord, renderData }: CalendarEventRendererContext) => {
-      const model = eventRecord as CalendarEventModelShape
-      const sourceEvent = events.find((item) => item.id === String(model.id))
-      const tagColors = sourceEvent ? getEventTagColors(sourceEvent) : []
-      const focus = sourceEvent?.focus ?? 0
+  const handleEventDrop = useCallback(
+    (info: EventDropArg) => {
+      void persistEventChange(info.event.id, info.event.start, info.event.end, info.revert)
+    },
+    [persistEventChange],
+  )
 
-      applyScheduleEventStyle(renderData, tagColors, focus)
+  const handleEventResize = useCallback(
+    (info: EventResizeDoneArg) => {
+      void persistEventChange(info.event.id, info.event.start, info.event.end, info.revert)
+    },
+    [persistEventChange],
+  )
 
-      return {
-        className: 'schedule-calendar-event',
-        children: [
-          {
-            className: 'schedule-event-tag-strip',
-            children: buildScheduleTagStripChildren(tagColors, focus),
-          },
-          {
-            className: 'schedule-calendar-event-title',
-            text: String(model.name ?? sourceEvent?.title ?? ''),
-          },
-        ],
+  const handleEventClick = useCallback(
+    (info: EventClickArg) => {
+      info.jsEvent.preventDefault()
+
+      const event = events.find((item) => item.id === info.event.id)
+
+      if (event) {
+        onEventClick?.(event)
       }
     },
-    [events],
+    [events, onEventClick],
+  )
+
+  const handleEventDidMount = useCallback((info: EventMountArg) => {
+    const tagColors = (info.event.extendedProps.tagColors as string[] | undefined) ?? []
+    const focus = (info.event.extendedProps.focus as number | undefined) ?? 0
+
+    applyScheduleEventElementStyle(info.el, tagColors, focus)
+
+    const mainElement = info.el.querySelector('.fc-event-main')
+
+    if (mainElement instanceof HTMLElement) {
+      applyScheduleEventElementStyle(mainElement, tagColors, focus)
+    }
+  }, [])
+
+  const renderEventContent = useCallback(
+    (info: EventContentArg) => {
+      const tagColors = (info.event.extendedProps.tagColors as string[] | undefined) ?? []
+      const focus = (info.event.extendedProps.focus as number | undefined) ?? 0
+      const start = info.event.start
+      const end = info.event.end
+      const timeText =
+        start && end && !info.event.allDay
+          ? info.timeText || formatScheduleTimeRange(start, end, localeCode)
+          : info.timeText
+
+      return (
+        <CalendarEventContent
+          title={info.event.title}
+          tagColors={tagColors}
+          focus={focus}
+          timeText={timeText}
+        />
+      )
+    },
+    [localeCode],
   )
 
   const setNavigatedDate = (value: Date) => {
     didNavigate.current = true
     setCurrentDate(value)
+    calendarRef.current?.getApi().gotoDate(value)
+  }
+
+  const setViewMode = (nextMode: CalendarMode) => {
+    setMode(nextMode)
+    calendarRef.current?.getApi().changeView(VIEW_BY_MODE[nextMode], currentDate)
+  }
+
+  const handleDatesSet = (info: DatesSetArg) => {
+    if (didNavigate.current) {
+      return
+    }
+
+    setCurrentDate(info.view.currentStart)
   }
 
   return (
@@ -270,7 +361,7 @@ export default function ProfileCalendar({
                   ? 'bg-accent text-primary shadow-sm'
                   : 'text-[color:var(--muted-foreground)] hover:bg-[color:var(--surface-muted)] hover:text-[color:var(--foreground)]',
               )}
-              onClick={() => setMode(item.key)}
+              onClick={() => setViewMode(item.key)}
             >
               <item.icon className="size-4" />
               {item.label}
@@ -281,51 +372,40 @@ export default function ProfileCalendar({
 
       <div
         key={themeKey}
-        className="schedule-bryntum h-[760px] w-full overflow-hidden rounded-[20px] border border-[color:var(--border)] bg-[color:var(--surface)]"
+        className="schedule-fullcalendar h-[760px] w-full overflow-hidden rounded-[20px] border border-[color:var(--border)] bg-[color:var(--surface)] p-2"
       >
-        <BryntumCalendar
+        <FullCalendar
+          ref={calendarRef}
           key={themeKey}
+          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+          initialView={VIEW_BY_MODE.week}
+          initialDate={initialDate}
+          locale={locale === 'ru' ? ruLocale : 'en'}
+          timeZone="local"
+          firstDay={1}
+          headerToolbar={false}
           height="100%"
-          date={currentDate}
-          mode={mode}
-          weekStartDay={1}
-          sidebar={false}
-          datePicker={false}
-          tbar={null}
-          autoCreate={false}
-          eventEditFeature={false}
-          modeDefaults={{
-            eventRenderer: renderCalendarEvent,
-          }}
-          resources={resources.map((tag) => ({
-            id: tag.id,
-            name: tag.name,
-            eventColor: tag.color,
-          }))}
+          nowIndicator
+          allDaySlot={false}
+          forceEventDuration
+          defaultTimedEventDuration="01:00:00"
+          eventMinHeight={24}
+          editable={Boolean(onEventDateChange)}
+          eventStartEditable={Boolean(onEventDateChange)}
+          eventDurationEditable={Boolean(onEventDateChange)}
           events={calendarEvents}
-          modes={{
-            day: true,
-            week: true,
-            month: true,
-            agenda: false,
-            year: false,
-            list: false,
-          }}
-          onBeforeDragCreate={() => false}
-          onBeforeEventEdit={() => false}
-          onBeforeDragMoveEnd={persistEventDates}
-          onBeforeDragResizeEnd={persistEventDates}
-          onDateChange={({ date }: CalendarDateChangeContext) => {
-            didNavigate.current = true
-            setCurrentDate(new Date(date))
-          }}
-          onEventClick={({ eventRecord }: CalendarEventClickContext) => {
-            const event = events.find((item) => item.id === String(eventRecord.id))
-
-            if (event) {
-              onEventClick?.(event)
-            }
-          }}
+          eventClick={handleEventClick}
+          eventDrop={handleEventDrop}
+          eventResize={handleEventResize}
+          eventContent={renderEventContent}
+          eventDidMount={handleEventDidMount}
+          datesSet={handleDatesSet}
+          dayMaxEvents={3}
+          slotDuration="00:30:00"
+          slotMinTime="00:00:00"
+          slotMaxTime="24:00:00"
+          scrollTime={scrollTime}
+          scrollTimeReset={false}
         />
       </div>
     </div>
