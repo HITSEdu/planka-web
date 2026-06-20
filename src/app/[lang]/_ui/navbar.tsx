@@ -2,13 +2,13 @@
 
 import { LogoutButton } from './logout-button'
 
+import { useGetProfile } from '@/shared/api/profile-api/hooks'
 import { useLocalizedPath, useResolvedWorkspaceTheme } from '@/shared/hooks'
 import { cn } from '@/shared/utils'
 import { toggleNavbarEventName } from '@constants/events'
 import { Routes } from '@constants/routes'
 import { useDictionary } from '@contexts/dictionary-context'
 import { CalendarDays, Menu, Settings, Users } from 'lucide-react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { useSelectedLayoutSegment } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -33,14 +33,50 @@ const items = [
   },
 ] as const
 
+type NavbarProfile = {
+  avatarUrl?: string | null
+  email?: string | null
+  firstName?: string | null
+  lastName?: string | null
+}
+
+const buildProfileLabel = (profile: NavbarProfile | null) => {
+  const name = [profile?.firstName, profile?.lastName]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(' ')
+
+  return name || profile?.email || 'Profile'
+}
+
+const buildProfileInitials = (profile: NavbarProfile | null) => {
+  const nameParts = [profile?.firstName, profile?.lastName]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+
+  if (nameParts.length) {
+    return nameParts
+      .slice(0, 2)
+      .map((part) => part?.[0]?.toUpperCase())
+      .join('')
+  }
+
+  return (profile?.email?.[0] ?? 'P').toUpperCase()
+}
+
 export const Navbar = () => {
   const toLocalized = useLocalizedPath()
   const [open, setOpen] = useState(true)
   const { workspaceThemeClass } = useResolvedWorkspaceTheme()
+  const { data } = useGetProfile()
 
   const segment = useSelectedLayoutSegment() ?? ''
 
   const dict = useDictionary().nav
+  const profile = data?.ok ? data.data : null
+  const profileEmail = profile?.email ?? ''
+  const profileLabel = buildProfileLabel(profile)
+  const profileInitials = buildProfileInitials(profile)
 
   const toggle = () => setOpen((prev) => !prev)
   useEffect(() => {
@@ -108,16 +144,17 @@ export const Navbar = () => {
         </button>
 
         <nav className="flex h-full flex-col gap-6">
-          <div className="flex justify-center pt-1">
-            <div className="workspace-panel-solid relative h-[96px] w-[96px] overflow-hidden rounded-[28px] border border-white/10 desktop:h-[84px] desktop:w-[84px]">
-              <Image
-                src="/assets/auth/login/blue-blur-flower.png"
-                alt=""
-                fill
-                className="object-cover"
-                priority
-                unoptimized
-              />
+          <div className="flex flex-col items-center gap-2 pt-1 text-center">
+            <NavbarProfileAvatar
+              initials={profileInitials}
+              label={profileLabel}
+              src={profile?.avatarUrl}
+            />
+            <div
+              className="min-h-5 w-full max-w-[164px] truncate px-1 text-xs font-semibold leading-5 text-[color:var(--muted-foreground)] desktop:max-w-[108px]"
+              title={profileEmail}
+            >
+              {profileEmail}
             </div>
           </div>
 
@@ -145,5 +182,32 @@ export const Navbar = () => {
         </nav>
       </aside>
     </>
+  )
+}
+
+type NavbarProfileAvatarProps = {
+  initials: string
+  label: string
+  src?: string | null
+}
+
+function NavbarProfileAvatar({ initials, label, src }: NavbarProfileAvatarProps) {
+  const [failedSrc, setFailedSrc] = useState<string | null>(null)
+  const avatarSrc = src && failedSrc !== src ? src : null
+
+  return (
+    <div className="workspace-panel-solid flex size-[96px] shrink-0 items-center justify-center overflow-hidden rounded-full border border-[color:var(--border)] bg-[color:var(--surface-muted)] text-[32px] font-bold text-accent desktop:size-[84px] desktop:text-[28px]">
+      {avatarSrc ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={avatarSrc}
+          alt={label}
+          className="size-full object-cover"
+          onError={() => setFailedSrc(avatarSrc)}
+        />
+      ) : (
+        <span>{initials}</span>
+      )}
+    </div>
   )
 }
