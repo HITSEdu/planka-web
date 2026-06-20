@@ -3,10 +3,12 @@
 import ProfileCalendar from '../../../_ui/calendar'
 import ProfileTimeline from '../../../_ui/timeline'
 
-import type { EventType, TagType } from '@dto'
+import type { EventAccessStatusType, EventType, TagType } from '@dto'
 
+import { useResolvedWorkspaceTheme } from '@/shared/hooks'
 import { useLogout } from '@actions/auth-actions'
 import { useCreateEvent, useDeleteEvent, useGetEvents, useUpdateEvent } from '@api/events-api/hooks'
+import { useGetFriendsOverview } from '@api/friends-api/hooks'
 import { useCreateTag, useDeleteTag, useGetTags, useUpdateTag } from '@api/tags-api/hooks'
 import { Status } from '@constants/api'
 import { Routes } from '@constants/routes'
@@ -23,11 +25,12 @@ import {
   SunMedium,
   Tag,
   Trash2,
+  Users,
   Waypoints,
   X,
 } from 'lucide-react'
 import Link from 'next/link'
-import { useTheme } from 'next-themes'
+import { useSearchParams } from 'next/navigation'
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -40,11 +43,35 @@ const iconButtonClassName =
 const themeToggleButtonClassName =
   'flex size-12 items-center justify-center rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] transition hover:bg-[color:var(--surface-muted)]'
 
+const accessOptions: Array<{
+  value: EventAccessStatusType
+  label: string
+  hint: string
+}> = [
+  {
+    value: 'PRIVATE',
+    label: 'Только я',
+    hint: 'Событие видно только владельцу.',
+  },
+  {
+    value: 'SHARED',
+    label: 'С друзьями',
+    hint: 'Событие увидят только выбранные друзья.',
+  },
+  {
+    value: 'PUBLIC',
+    label: 'Публично',
+    hint: 'Событие будет доступно всем друзьям, у кого есть ссылка на расписание.',
+  },
+]
+
 type ScheduleView = 'calendar' | 'timeline'
 
 type Props = {
   view: ScheduleView
 }
+
+type DisplayTag = Pick<TagType, 'id' | 'name' | 'color'>
 
 const toDateTimeInputValue = (date: Date) => {
   const pad = (value: number) => String(value).padStart(2, '0')
@@ -73,9 +100,30 @@ const addHours = (value: string, hours: number) => {
   return toDateTimeInputValue(date)
 }
 
+const deriveTagsFromEvents = (events: EventType[]): DisplayTag[] => {
+  const tagsMap = new Map<string, DisplayTag>()
+
+  for (const event of events) {
+    for (const tag of event.tags) {
+      tagsMap.set(tag.id, {
+        id: tag.id,
+        name: tag.name,
+        color: tag.color,
+      })
+    }
+  }
+
+  return Array.from(tagsMap.values()).sort((left, right) => left.name.localeCompare(right.name))
+}
+
+const friendLabel = (friend: { name: string | null; email: string }) => friend.name ?? friend.email
+
 export const ScheduleDashboard = ({ view }: Props) => {
   const toLocalized = useLocalizedPath()
-  const { resolvedTheme, setTheme } = useTheme()
+  const searchParams = useSearchParams()
+  const activeFriendId = searchParams.get('friend') ?? undefined
+  const isFriendView = Boolean(activeFriendId)
+  const { currentTheme, mounted, setTheme, workspaceThemeClass } = useResolvedWorkspaceTheme()
   const [selectedTagName, setSelectedTagName] = useState<string | undefined>()
   const [isTagModalOpen, setIsTagModalOpen] = useState(false)
   const [editingTag, setEditingTag] = useState<TagType | null>(null)
@@ -89,15 +137,26 @@ export const ScheduleDashboard = ({ view }: Props) => {
   const [eventEndsAt, setEventEndsAt] = useState('')
   const [eventFocus, setEventFocus] = useState(0)
   const [eventTagIds, setEventTagIds] = useState<string[]>([])
+  const [eventAccessStatus, setEventAccessStatus] = useState<EventAccessStatusType>('PRIVATE')
+  const [eventSharedUserIds, setEventSharedUserIds] = useState<string[]>([])
   const didHandleUnauthorized = useRef(false)
 
   const { mutate: logout } = useLogout()
   const {
-    data: tags = [],
+    data: ownTags = [],
     isLoading: isTagsLoading,
     isError: isTagsError,
     error: tagsError,
-  } = useGetTags()
+  } = useGetTags({ enabled: !isFriendView })
+  const selectedTagNameForQuery =
+    !isFriendView && ownTags.some((tag) => tag.name === selectedTagName)
+      ? selectedTagName
+      : undefined
+  const {
+    data: friendsOverview,
+    isError: isFriendsError,
+    error: friendsError,
+  } = useGetFriendsOverview()
   const createTag = useCreateTag()
   const updateTag = useUpdateTag()
   const deleteTag = useDeleteTag()
@@ -106,34 +165,69 @@ export const ScheduleDashboard = ({ view }: Props) => {
     isLoading,
     isError,
     error,
-  } = useGetEvents({ tagName: selectedTagName })
+  } = useGetEvents(
+    isFriendView ? { friendId: activeFriendId } : { tagName: selectedTagNameForQuery },
+  )
   const createEvent = useCreateEvent()
   const updateEvent = useUpdateEvent()
   const deleteEvent = useDeleteEvent()
-  const visibleEvents = isError ? [] : events
 
+  const friends = useMemo(() => friendsOverview?.friends ?? [], [friendsOverview])
+  const activeFriend = useMemo(
+    () => friends.find((friend) => friend.id === activeFriendId),
+    [activeFriendId, friends],
+  )
+  const tags = useMemo<DisplayTag[]>(
+    () => (isFriendView ? deriveTagsFromEvents(events) : ownTags),
+    [events, isFriendView, ownTags],
+  )
+  const effectiveSelectedTagName =
+    selectedTagName && tags.some((tag) => tag.name === selectedTagName)
+      ? selectedTagName
+      : undefined
+  const visibleEvents = useMemo(() => {
+    if (isError) {
+      return []
+    }
+
+    if (!effectiveSelectedTagName) {
+      return events
+    }
+
+    return events.filter((event) => event.tags.some((tag) => tag.name === effectiveSelectedTagName))
+  }, [effectiveSelectedTagName, events, isError])
   const selectedTag = useMemo(
-    () => tags.find((tag) => tag.name === selectedTagName),
-    [selectedTagName, tags],
+    () => tags.find((tag) => tag.name === effectiveSelectedTagName),
+    [effectiveSelectedTagName, tags],
   )
 
   const isTagMutationPending = createTag.isPending || updateTag.isPending || deleteTag.isPending
   const isEventMutationPending =
     createEvent.isPending || updateEvent.isPending || deleteEvent.isPending
-  const currentTheme = resolvedTheme === 'dark' ? 'dark' : 'light'
-  const workspaceThemeClass = currentTheme === 'dark' ? 'workspace-dark' : 'workspace-light'
+  const friendQuery = activeFriendId ? `?friend=${activeFriendId}` : ''
+  const friendsPageHref = toLocalized(Routes.Friends)
+  const accessHint =
+    accessOptions.find((option) => option.value === eventAccessStatus)?.hint ??
+    accessOptions[0].hint
 
   useEffect(() => {
     const tagsUnauthorized =
       isTagsError && tagsError instanceof Error && tagsError.message === Status.Unauthorized
     const eventsUnauthorized =
       isError && error instanceof Error && error.message === Status.Unauthorized
+    const friendsUnauthorized =
+      isFriendsError &&
+      friendsError instanceof Error &&
+      friendsError.message === Status.Unauthorized
 
-    if (!didHandleUnauthorized.current && (tagsUnauthorized || eventsUnauthorized)) {
+    if (
+      !didHandleUnauthorized.current &&
+      (tagsUnauthorized || eventsUnauthorized || friendsUnauthorized)
+    ) {
       didHandleUnauthorized.current = true
       logout()
     }
-  }, [error, isError, isTagsError, logout, tagsError])
+  }, [error, friendsError, isError, isFriendsError, isTagsError, logout, tagsError])
 
   const openCreateTagModal = () => {
     setEditingTag(null)
@@ -193,7 +287,7 @@ export const ScheduleDashboard = ({ view }: Props) => {
   }
 
   const deleteSelectedTag = () => {
-    if (!selectedTag) {
+    if (isFriendView || !selectedTag) {
       return
     }
 
@@ -220,6 +314,8 @@ export const ScheduleDashboard = ({ view }: Props) => {
     setEventEndsAt(addHours(startValue, 1))
     setEventFocus(0)
     setEventTagIds(selectedTag ? [selectedTag.id] : [])
+    setEventAccessStatus('PRIVATE')
+    setEventSharedUserIds([])
     setIsEventModalOpen(true)
   }
 
@@ -237,6 +333,8 @@ export const ScheduleDashboard = ({ view }: Props) => {
     )
     setEventFocus(event.focus)
     setEventTagIds(event.tags.map((tag) => tag.id))
+    setEventAccessStatus(event.access_status)
+    setEventSharedUserIds(event.shared_user_ids)
     setIsEventModalOpen(true)
   }
 
@@ -248,6 +346,14 @@ export const ScheduleDashboard = ({ view }: Props) => {
     )
   }
 
+  const toggleSharedFriend = (friendID: string) => {
+    setEventSharedUserIds((currentFriendIDs) =>
+      currentFriendIDs.includes(friendID)
+        ? currentFriendIDs.filter((currentFriendID) => currentFriendID !== friendID)
+        : [...currentFriendIDs, friendID],
+    )
+  }
+
   const submitEvent = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
@@ -255,6 +361,11 @@ export const ScheduleDashboard = ({ view }: Props) => {
 
     if (!title) {
       toast.error('Введите название события')
+      return
+    }
+
+    if (eventAccessStatus === 'SHARED' && !eventSharedUserIds.length) {
+      toast.error('Выберите хотя бы одного друга для общего события')
       return
     }
 
@@ -272,7 +383,9 @@ export const ScheduleDashboard = ({ view }: Props) => {
       starts_at: startsAt,
       ends_at: endsAt,
       focus: eventFocus,
+      access_status: eventAccessStatus,
       tag_ids: eventTagIds,
+      shared_user_ids: eventAccessStatus === 'SHARED' ? eventSharedUserIds : [],
     }
 
     if (editingEvent) {
@@ -320,7 +433,9 @@ export const ScheduleDashboard = ({ view }: Props) => {
             starts_at,
             ends_at,
             focus: event.focus,
+            access_status: event.access_status,
             tag_ids: event.tags.map((tag) => tag.id),
+            shared_user_ids: event.shared_user_ids,
           },
         })
       } catch {
@@ -347,11 +462,14 @@ export const ScheduleDashboard = ({ view }: Props) => {
 
             <div className="space-y-4">
               <h1 className="font-raleway text-[46px] font-bold leading-none text-[color:var(--foreground)] tablet:text-[64px] desktop:text-[76px]">
-                Мое расписание
+                {isFriendView
+                  ? `Расписание: ${activeFriend ? friendLabel(activeFriend) : 'друг'}`
+                  : 'Мое расписание'}
               </h1>
               <p className="max-w-[720px] text-base leading-7 text-[color:var(--muted-foreground)] tablet:text-lg">
-                Дела, тэги и представления собраны в один рабочий экран, как в приватной части
-                приложения, а не в отдельные разрозненные страницы.
+                {isFriendView
+                  ? 'Открыто только то, чем друг поделился с тобой. Здесь ничего нельзя редактировать, зато можно переключаться между календарем и таймлайном.'
+                  : 'Дела, тэги и представления собраны в один рабочий экран. Здесь же настраивается доступ к событиям для друзей.'}
               </p>
             </div>
           </div>
@@ -381,23 +499,42 @@ export const ScheduleDashboard = ({ view }: Props) => {
               <Moon className="size-5" />
             </button>
 
-            <button
-              type="button"
-              className="flex items-center gap-2 rounded-[18px] bg-accent px-5 py-3 text-sm font-semibold text-primary transition hover:opacity-90"
-              onClick={openCreateEventModal}
-            >
-              <Plus className="size-4" />
-              Создать дело
-            </button>
+            {isFriendView ? (
+              <>
+                <Link
+                  href={toLocalized(Routes.Profile)}
+                  className="flex items-center gap-2 rounded-[18px] bg-accent px-5 py-3 text-sm font-semibold text-primary transition hover:opacity-90"
+                >
+                  <SquareStack className="size-4" />
+                  Мое расписание
+                </Link>
+                <Link
+                  href={friendsPageHref}
+                  className="workspace-outline-button flex items-center gap-3 rounded-[18px] px-6 py-3 text-lg font-semibold"
+                >
+                  <Users className="size-5" />К друзьям
+                </Link>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="flex items-center gap-2 rounded-[18px] bg-accent px-5 py-3 text-sm font-semibold text-primary transition hover:opacity-90"
+                  onClick={openCreateEventModal}
+                >
+                  <Plus className="size-4" />
+                  Создать дело
+                </button>
 
-            <button
-              type="button"
-              className="workspace-outline-button flex items-center gap-3 rounded-[18px] px-6 py-3 text-lg font-semibold"
-              onClick={() => toast.info('Совместный доступ к событиям добавим следующим шагом')}
-            >
-              <Share2 className="size-5" />
-              Поделиться
-            </button>
+                <Link
+                  href={friendsPageHref}
+                  className="workspace-outline-button flex items-center gap-3 rounded-[18px] px-6 py-3 text-lg font-semibold"
+                >
+                  <Share2 className="size-5" />
+                  Поделиться
+                </Link>
+              </>
+            )}
           </div>
         </header>
 
@@ -408,7 +545,7 @@ export const ScheduleDashboard = ({ view }: Props) => {
                 <div className="flex items-center gap-3">
                   <Tag className="size-7 text-[color:var(--foreground)]" />
                   <h2 className="font-raleway text-[34px] font-bold leading-none tablet:text-[42px]">
-                    Тэги
+                    {isFriendView ? 'Тэги друга' : 'Тэги'}
                   </h2>
                 </div>
 
@@ -442,20 +579,7 @@ export const ScheduleDashboard = ({ view }: Props) => {
                     </button>
                   ))}
 
-                  <button
-                    type="button"
-                    className={cn(
-                      iconButtonClassName,
-                      'workspace-soft-button h-11 w-11 rounded-full',
-                    )}
-                    aria-label="Создать тэг"
-                    onClick={openCreateTagModal}
-                    title="Создать тэг"
-                  >
-                    <Plus className="size-4" />
-                  </button>
-
-                  {selectedTag && (
+                  {!isFriendView && (
                     <>
                       <button
                         type="button"
@@ -463,26 +587,49 @@ export const ScheduleDashboard = ({ view }: Props) => {
                           iconButtonClassName,
                           'workspace-soft-button h-11 w-11 rounded-full',
                         )}
-                        aria-label="Редактировать тэг"
-                        onClick={() => openEditTagModal(selectedTag)}
-                        title="Редактировать тэг"
+                        aria-label="Создать тэг"
+                        onClick={openCreateTagModal}
+                        title="Создать тэг"
                       >
-                        <Pencil className="size-4" />
+                        <Plus className="size-4" />
                       </button>
 
-                      <button
-                        type="button"
-                        className={cn(
-                          iconButtonClassName,
-                          'workspace-soft-button h-11 w-11 rounded-full',
-                        )}
-                        aria-label="Удалить тэг"
-                        disabled={deleteTag.isPending}
-                        onClick={deleteSelectedTag}
-                        title="Удалить тэг"
-                      >
-                        <Trash2 className="size-4" />
-                      </button>
+                      {selectedTag && (
+                        <>
+                          <button
+                            type="button"
+                            className={cn(
+                              iconButtonClassName,
+                              'workspace-soft-button h-11 w-11 rounded-full',
+                            )}
+                            aria-label="Редактировать тэг"
+                            onClick={() => {
+                              const editableTag = ownTags.find((tag) => tag.id === selectedTag.id)
+
+                              if (editableTag) {
+                                openEditTagModal(editableTag)
+                              }
+                            }}
+                            title="Редактировать тэг"
+                          >
+                            <Pencil className="size-4" />
+                          </button>
+
+                          <button
+                            type="button"
+                            className={cn(
+                              iconButtonClassName,
+                              'workspace-soft-button h-11 w-11 rounded-full',
+                            )}
+                            aria-label="Удалить тэг"
+                            disabled={deleteTag.isPending}
+                            onClick={deleteSelectedTag}
+                            title="Удалить тэг"
+                          >
+                            <Trash2 className="size-4" />
+                          </button>
+                        </>
+                      )}
                     </>
                   )}
                 </div>
@@ -496,6 +643,12 @@ export const ScheduleDashboard = ({ view }: Props) => {
                 <span className="workspace-chip rounded-full px-3 py-1.5 font-medium">
                   {selectedTag ? `Фильтр: ${selectedTag.name}` : 'Все тэги'}
                 </span>
+
+                {isFriendView && activeFriend && (
+                  <span className="workspace-chip rounded-full px-3 py-1.5 font-medium">
+                    Друг: {friendLabel(activeFriend)}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -506,13 +659,13 @@ export const ScheduleDashboard = ({ view }: Props) => {
                     key: 'calendar' as const,
                     label: 'Календарь',
                     icon: SquareStack,
-                    href: toLocalized(Routes.Profile),
+                    href: `${toLocalized(Routes.Profile)}${friendQuery}`,
                   },
                   {
                     key: 'timeline' as const,
                     label: 'Таймлайн',
                     icon: Waypoints,
-                    href: toLocalized(Routes.Timeline),
+                    href: `${toLocalized(Routes.Timeline)}${friendQuery}`,
                   },
                 ].map((item) => (
                   <Link
@@ -533,48 +686,66 @@ export const ScheduleDashboard = ({ view }: Props) => {
               </div>
             </div>
 
-            {isTagsError && (
+            {!isFriendView && isTagsError && (
               <div className="rounded-2xl border border-amber-300/50 bg-amber-100/70 px-4 py-3 text-sm text-amber-950 dark:bg-amber-500/10 dark:text-amber-100">
                 Тэги пока не загрузились.
                 {tagsError instanceof Error ? ` Причина: ${tagsError.message}` : ''}
               </div>
             )}
 
-            {isTagsLoading && (
+            {isFriendsError && (
+              <div className="rounded-2xl border border-amber-300/50 bg-amber-100/70 px-4 py-3 text-sm text-amber-950 dark:bg-amber-500/10 dark:text-amber-100">
+                Список друзей пока не загрузился.
+                {friendsError instanceof Error ? ` Причина: ${friendsError.message}` : ''}
+              </div>
+            )}
+
+            {!isFriendView && isTagsLoading && (
               <div className="text-sm text-[color:var(--muted-foreground)]">Загружаем тэги...</div>
             )}
 
             {isError && (
               <div className="rounded-2xl border border-amber-300/50 bg-amber-100/70 px-4 py-3 text-sm text-amber-950 dark:bg-amber-500/10 dark:text-amber-100">
-                События пока не загрузились, показываем пустое представление.
+                {isFriendView
+                  ? 'Расписание друга пока не загрузилось, показываем пустое представление.'
+                  : 'События пока не загрузились, показываем пустое представление.'}
                 {error instanceof Error ? ` Причина: ${error.message}` : ''}
+              </div>
+            )}
+
+            {isFriendView && activeFriendId && !activeFriend && friendsOverview && (
+              <div className="rounded-2xl border border-amber-300/50 bg-amber-100/70 px-4 py-3 text-sm text-amber-950 dark:bg-amber-500/10 dark:text-amber-100">
+                Не удалось найти выбранного друга в текущем списке.
               </div>
             )}
 
             {isLoading ? (
               <div className="workspace-panel-solid flex h-[420px] items-center justify-center rounded-[28px] text-lg font-medium text-[color:var(--muted-foreground)]">
-                Загружаем события...
+                {isFriendView ? 'Загружаем расписание друга...' : 'Загружаем события...'}
               </div>
             ) : (
               <div className="space-y-4">
                 {!visibleEvents.length && (
                   <div className="workspace-panel-solid rounded-[28px] border border-dashed px-6 py-8 text-sm leading-7 text-[color:var(--muted-foreground)]">
-                    Пока пусто. Создай первое дело, добавь тэги и переключайся между календарем и
-                    таймлайном.
+                    {isFriendView
+                      ? 'Пока пусто. Возможно, друг еще не поделился ни одним делом или текущий фильтр ничего не нашел.'
+                      : 'Пока пусто. Создай первое дело, добавь тэги и выбери, с кем из друзей им поделиться.'}
                   </div>
                 )}
 
                 {view === 'timeline' ? (
                   <ProfileTimeline
+                    themeKey={mounted ? currentTheme : 'dark'}
                     events={visibleEvents}
                     tags={tags}
-                    onEventClick={openEditEventModal}
+                    onEventClick={isFriendView ? undefined : openEditEventModal}
                   />
                 ) : (
                   <ProfileCalendar
+                    themeKey={mounted ? currentTheme : 'dark'}
                     events={visibleEvents}
                     tags={tags}
-                    onEventClick={openEditEventModal}
+                    onEventClick={isFriendView ? undefined : openEditEventModal}
                     onEventDateChange={handleEventDateChange}
                   />
                 )}
@@ -584,7 +755,7 @@ export const ScheduleDashboard = ({ view }: Props) => {
         </div>
       </div>
 
-      {isTagModalOpen && (
+      {!isFriendView && isTagModalOpen && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/45 px-4">
           <form
             className="workspace-modal w-full max-w-[440px] rounded-[28px] p-6 text-[color:var(--foreground)]"
@@ -627,10 +798,10 @@ export const ScheduleDashboard = ({ view }: Props) => {
         </div>
       )}
 
-      {isEventModalOpen && (
+      {!isFriendView && isEventModalOpen && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/45 px-4">
           <form
-            className="workspace-modal max-h-[92vh] w-full max-w-[660px] overflow-y-auto rounded-[28px] p-6 text-[color:var(--foreground)]"
+            className="workspace-modal max-h-[92vh] w-full max-w-[720px] overflow-y-auto rounded-[28px] p-6 text-[color:var(--foreground)]"
             onSubmit={submitEvent}
           >
             <div className="mb-6 flex items-center justify-between gap-4">
@@ -703,7 +874,7 @@ export const ScheduleDashboard = ({ view }: Props) => {
               <div className="flex flex-col gap-3 text-sm font-medium text-[color:var(--muted-foreground)]">
                 Тэги
                 <div className="flex flex-wrap gap-2">
-                  {tags.map((tag) => {
+                  {ownTags.map((tag) => {
                     const selected = eventTagIds.includes(tag.id)
 
                     return (
@@ -726,6 +897,70 @@ export const ScheduleDashboard = ({ view }: Props) => {
                   })}
                 </div>
               </div>
+
+              <div className="flex flex-col gap-3 text-sm font-medium text-[color:var(--muted-foreground)]">
+                Доступ
+                <div className="inline-flex w-fit flex-wrap rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] p-1">
+                  {accessOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={cn(
+                        'rounded-[14px] px-4 py-2 text-sm font-semibold transition',
+                        eventAccessStatus === option.value
+                          ? 'bg-accent text-primary'
+                          : 'text-[color:var(--muted-foreground)] hover:bg-[color:var(--surface-muted)] hover:text-[color:var(--foreground)]',
+                      )}
+                      onClick={() => setEventAccessStatus(option.value)}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs leading-6 text-[color:var(--muted-foreground)]">
+                  {accessHint}
+                </p>
+              </div>
+
+              {eventAccessStatus === 'SHARED' && (
+                <div className="flex flex-col gap-3 text-sm font-medium text-[color:var(--muted-foreground)]">
+                  С кем делимся
+                  {friends.length ? (
+                    <div className="flex flex-wrap gap-2">
+                      {friends.map((friend) => {
+                        const selected = eventSharedUserIds.includes(friend.id)
+
+                        return (
+                          <button
+                            key={friend.id}
+                            type="button"
+                            className={cn(
+                              'inline-flex h-10 items-center gap-2 rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] px-4 text-sm font-medium text-[color:var(--foreground)] transition hover:bg-[color:var(--surface-muted)]',
+                              selected && 'ring-2 ring-accent',
+                            )}
+                            onClick={() => toggleSharedFriend(friend.id)}
+                          >
+                            <Users className="size-4" />
+                            {friendLabel(friend)}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-[color:var(--border)] px-4 py-4 text-sm leading-7 text-[color:var(--muted-foreground)]">
+                      Сначала добавь друзей, чтобы делиться делами.
+                      <div className="mt-2">
+                        <Link
+                          href={friendsPageHref}
+                          className="text-accent underline underline-offset-4"
+                        >
+                          Перейти к друзьям
+                        </Link>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="mt-8 flex flex-col gap-3 tablet:flex-row">

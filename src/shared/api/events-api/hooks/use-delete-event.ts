@@ -1,5 +1,5 @@
 import { eventsApi } from '@api/events-api'
-import { EVENTS_TAGS } from '@constants/api'
+import { EVENTS_TAGS, FRIENDS_TAGS } from '@constants/api'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 export function useDeleteEvent() {
@@ -16,7 +16,10 @@ export function useDeleteEvent() {
       return result.data
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: EVENTS_TAGS.root })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: EVENTS_TAGS.root }),
+        queryClient.invalidateQueries({ queryKey: FRIENDS_TAGS.root }),
+      ])
     },
   })
 }

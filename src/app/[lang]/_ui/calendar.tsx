@@ -43,6 +43,7 @@ type Props = {
   tags: Pick<TagType, 'id' | 'name' | 'color'>[]
   onEventClick?: (event: EventType) => void
   onEventDateChange?: (input: EventDateChangeInput) => Promise<void>
+  themeKey?: string
 }
 
 type CalendarMode = 'day' | 'week' | 'month'
@@ -111,7 +112,13 @@ const formatCalendarTitle = (value: Date, mode: CalendarMode, localeCode: string
   return `${formatter.format(startDate)} - ${formatter.format(endDate)}`
 }
 
-export default function ProfileCalendar({ events, tags, onEventClick, onEventDateChange }: Props) {
+export default function ProfileCalendar({
+  events,
+  tags,
+  onEventClick,
+  onEventDateChange,
+  themeKey = 'dark',
+}: Props) {
   const locale = useLocale()
   const localeCode = getLocaleCode(locale)
   const labels =
@@ -272,8 +279,12 @@ export default function ProfileCalendar({ events, tags, onEventClick, onEventDat
         </div>
       </div>
 
-      <div className="schedule-bryntum h-[760px] w-full overflow-hidden rounded-[20px] border border-[color:var(--border)] bg-[color:var(--surface)]">
+      <div
+        key={themeKey}
+        className="schedule-bryntum h-[760px] w-full overflow-hidden rounded-[20px] border border-[color:var(--border)] bg-[color:var(--surface)]"
+      >
         <BryntumCalendar
+          key={themeKey}
           height="100%"
           date={currentDate}
           mode={mode}

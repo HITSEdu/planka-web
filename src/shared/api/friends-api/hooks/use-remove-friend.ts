@@ -1,15 +1,13 @@
-import type { EventPayloadType } from '@dto'
-
-import { eventsApi } from '@api/events-api'
+import { friendsApi } from '@api/friends-api'
 import { EVENTS_TAGS, FRIENDS_TAGS } from '@constants/api'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
-export function useCreateEvent() {
+export function useRemoveFriend() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async (dto: EventPayloadType) => {
-      const result = await eventsApi.create(dto)
+    mutationFn: async (id: string) => {
+      const result = await friendsApi.removeFriend(id)
 
       if (!result.ok) {
         throw new Error(result.error)
@@ -19,8 +17,8 @@ export function useCreateEvent() {
     },
     onSuccess: async () => {
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: EVENTS_TAGS.root }),
         queryClient.invalidateQueries({ queryKey: FRIENDS_TAGS.root }),
+        queryClient.invalidateQueries({ queryKey: EVENTS_TAGS.root }),
       ])
     },
   })

@@ -4,6 +4,7 @@
     "index": "Home",
     "profile": "Profile",
     "schedule": "Schedule",
+    "friends": "Friends",
     "timeline": "Timeline",
     "logout": {
       "button": "Log out",

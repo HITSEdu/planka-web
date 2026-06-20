@@ -2,16 +2,15 @@
 
 import { LogoutButton } from './logout-button'
 
-import { useLocalizedPath } from '@/shared/hooks'
+import { useLocalizedPath, useResolvedWorkspaceTheme } from '@/shared/hooks'
 import { cn } from '@/shared/utils'
 import { toggleNavbarEventName } from '@constants/events'
 import { Routes } from '@constants/routes'
 import { useDictionary } from '@contexts/dictionary-context'
-import { CalendarDays, Menu, Settings } from 'lucide-react'
+import { CalendarDays, Menu, Settings, Users } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useSelectedLayoutSegment } from 'next/navigation'
-import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
 
 const restrictedRoutes = [Routes.Login, Routes.Register] as string[]
@@ -23,6 +22,11 @@ const items = [
     link: Routes.Profile,
   },
   {
+    icon: <Users className="size-6" />,
+    name: 'friends',
+    link: Routes.Friends,
+  },
+  {
     icon: <Settings className="size-6" />,
     name: 'profile',
     link: Routes.Settings,
@@ -32,15 +36,13 @@ const items = [
 export const Navbar = () => {
   const toLocalized = useLocalizedPath()
   const [open, setOpen] = useState(true)
-  const { resolvedTheme } = useTheme()
+  const { workspaceThemeClass } = useResolvedWorkspaceTheme()
 
   const segment = useSelectedLayoutSegment() ?? ''
 
   const dict = useDictionary().nav
 
   const toggle = () => setOpen((prev) => !prev)
-  const workspaceThemeClass = resolvedTheme === 'dark' ? 'workspace-dark' : 'workspace-light'
-
   useEffect(() => {
     document.addEventListener(toggleNavbarEventName, toggle)
 

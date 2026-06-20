@@ -1,5 +1,6 @@
 'use client'
 
+import { useResolvedWorkspaceTheme } from '@/shared/hooks'
 import { useLogout } from '@actions/auth-actions'
 import { useGetProfile } from '@api/profile-api/hooks'
 import { Status } from '@constants/api'
@@ -7,7 +8,6 @@ import { useDictionary, useLocale } from '@contexts/dictionary-context'
 import { cn } from '@utils'
 import { CalendarDays, Mail, Moon, ShieldUser, SunMedium, UserRound } from 'lucide-react'
 import Image from 'next/image'
-import { useTheme } from 'next-themes'
 import { useEffect, useMemo, useRef } from 'react'
 
 const formatBirthDate = (value: string, locale: 'ru' | 'en') => {
@@ -73,11 +73,9 @@ export function ProfileSettings() {
   const dict = useDictionary().profile.personalInfo
   const text = getPageText(locale)
   const didHandleUnauthorized = useRef(false)
-  const { resolvedTheme, setTheme } = useTheme()
+  const { currentTheme, setTheme, workspaceThemeClass } = useResolvedWorkspaceTheme()
   const { mutate: logout } = useLogout()
   const { data, isLoading } = useGetProfile()
-  const currentTheme = resolvedTheme === 'dark' ? 'dark' : 'light'
-  const workspaceThemeClass = currentTheme === 'dark' ? 'workspace-dark' : 'workspace-light'
 
   useEffect(() => {
     if (!data?.ok || data.error !== Status.Unauthorized || didHandleUnauthorized.current) {

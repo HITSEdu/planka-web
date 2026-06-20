@@ -30,6 +30,10 @@ const titles = [
     label: 'profile',
   },
   {
+    code: Routes.Friends,
+    label: 'friends',
+  },
+  {
     code: Routes.Timeline,
     label: 'timeline',
   },
@@ -46,7 +50,12 @@ export const Header = () => {
 
   const currentLocale = locales.find((el) => el.code === pathname.split('/')[1]) ?? locales[0]
 
-  if (segment === Routes.Profile || segment === Routes.Timeline || segment === Routes.Settings) {
+  if (
+    segment === Routes.Profile ||
+    segment === Routes.Timeline ||
+    segment === Routes.Settings ||
+    segment === Routes.Friends
+  ) {
     return null
   }
 

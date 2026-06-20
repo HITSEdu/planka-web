@@ -36,6 +36,7 @@ type Props = {
   events: EventType[]
   tags: Pick<TagType, 'id' | 'name' | 'color'>[]
   onEventClick?: (event: EventType) => void
+  themeKey?: string
 }
 
 type TimelinePreset = 'week' | 'fortnight'
@@ -75,7 +76,7 @@ const formatTimelineRange = (startDate: Date, endDate: Date, localeCode: string)
   return `${formatter.format(startDate)} - ${formatter.format(endDate)}`
 }
 
-export default function ProfileTimeline({ events, tags, onEventClick }: Props) {
+export default function ProfileTimeline({ events, tags, onEventClick, themeKey = 'dark' }: Props) {
   const locale = useLocale()
   const localeCode = getLocaleCode(locale)
   const labels =
@@ -192,8 +193,12 @@ export default function ProfileTimeline({ events, tags, onEventClick }: Props) {
         </div>
       </div>
 
-      <div className="schedule-bryntum h-[760px] w-full overflow-hidden rounded-[20px] border border-[color:var(--border)] bg-[color:var(--surface)]">
+      <div
+        key={themeKey}
+        className="schedule-bryntum h-[760px] w-full overflow-hidden rounded-[20px] border border-[color:var(--border)] bg-[color:var(--surface)]"
+      >
         <BryntumScheduler
+          key={themeKey}
           height="100%"
           mode="horizontal"
           readOnly

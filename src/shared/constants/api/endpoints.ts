@@ -16,6 +16,14 @@ export const endpoints = {
     root: '../events',
     byId: (id: string) => `../events/${id}`,
   },
+  friends: {
+    root: '../friends',
+    requests: '../friends/requests',
+    requestById: (id: string) => `../friends/requests/${id}`,
+    acceptRequest: (id: string) => `../friends/requests/${id}/accept`,
+    byId: (id: string) => `../friends/${id}`,
+    events: (id: string) => `../friends/${id}/events`,
+  },
   tags: {
     root: '../tags',
     byId: (id: string) => `../tags/${id}`,
