@@ -14,5 +14,10 @@ export const endpoints = {
   },
   events: {
     root: '../events',
+    byId: (id: string) => `../events/${id}`,
+  },
+  tags: {
+    root: '../tags',
+    byId: (id: string) => `../tags/${id}`,
   },
 } as const

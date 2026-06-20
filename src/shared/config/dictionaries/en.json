@@ -3,6 +3,8 @@
   "nav": {
     "index": "Home",
     "profile": "Profile",
+    "schedule": "Schedule",
+    "timeline": "Timeline",
     "logout": {
       "button": "Log out",
       "error": "Log out error!"

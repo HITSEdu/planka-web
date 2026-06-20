@@ -1,6 +1,6 @@
 import z from 'zod'
 
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE'
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
 export type RequestOptions<TBody = unknown> = {
   method?: HttpMethod
@@ -25,6 +25,12 @@ export interface IApiClient {
     options?: Omit<RequestOptions<B>, 'method' | 'body'>,
   ): Promise<T>
   put<T, B = unknown>(
+    url: string,
+    body?: B,
+    schema?: z.ZodType<T>,
+    options?: Omit<RequestOptions<B>, 'method' | 'body'>,
+  ): Promise<T>
+  patch<T, B = unknown>(
     url: string,
     body?: B,
     schema?: z.ZodType<T>,

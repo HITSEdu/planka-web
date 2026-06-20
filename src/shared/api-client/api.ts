@@ -35,6 +35,15 @@ export class ApiClient implements IApiClient {
     return this.request<T, B>(url, { ...options, method: 'PUT', body }, schema)
   }
 
+  async patch<T, B = unknown>(
+    url: string,
+    body?: B,
+    schema?: z.ZodType<T>,
+    options?: Omit<RequestOptions<B>, 'method' | 'body'>,
+  ) {
+    return this.request<T, B>(url, { ...options, method: 'PATCH', body }, schema)
+  }
+
   async delete<T>(
     url: string,
     schema?: z.ZodType<T>,
@@ -90,7 +99,7 @@ export class ApiClient implements IApiClient {
 
     let response = await this.performRequest(url, options, token)
 
-    if (!options.skipRefresh && response.status === 401 && typeof window !== undefined) {
+    if (!options.skipRefresh && response.status === 401 && typeof window !== 'undefined') {
       const refreshedToken = await fetchRefreshSessionInner()
 
       if (!refreshedToken) {

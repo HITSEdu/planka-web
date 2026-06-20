@@ -2,6 +2,7 @@ export enum Routes {
   Login = 'login',
   Register = 'register',
   Profile = 'profile',
+  Timeline = 'timeline',
   Settings = 'settings',
   Schedule = 'schedule',
   Friends = 'friends',
@@ -15,6 +16,7 @@ export const getRelativeRoute = (route: Routes, level: number = 1) =>
 
 export const PROTECTED_ROUTES = [
   Routes.Profile,
+  Routes.Timeline,
   Routes.Settings,
   Routes.Schedule,
   Routes.Friends,

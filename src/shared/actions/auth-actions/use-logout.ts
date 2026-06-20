@@ -1,30 +1,25 @@
 'use client'
 
-import { authApi } from '@api/auth-api'
+import { logoutAction } from './actions'
+
 import { Routes } from '@constants/routes'
-import { useDictionary } from '@contexts/dictionary-context'
-import { clearRefreshTokenFromCookies } from '@server'
+import { useLocalizedPath } from '@hooks/use-localized-path'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { accessStorage } from '@utils'
 import { useRouter } from 'next/navigation'
-import { toast } from 'sonner'
 
 export const useLogout = () => {
-  const dict = useDictionary().nav.logout
   const router = useRouter()
+  const toLocalized = useLocalizedPath()
   const queryClient = useQueryClient()
 
   const { mutate } = useMutation({
-    mutationFn: authApi.logout,
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({})
+    mutationFn: logoutAction,
+    onSettled: () => {
+      void queryClient.invalidateQueries({})
       accessStorage.remove()
-      await clearRefreshTokenFromCookies()
 
-      router.replace(Routes.Login)
-    },
-    onError: () => {
-      toast.error(dict.error)
+      router.replace(toLocalized(Routes.Login))
     },
   })
 

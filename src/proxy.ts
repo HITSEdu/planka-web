@@ -20,6 +20,13 @@ function getLocale(request: NextRequest) {
   }
 }
 
+function getPathLocale(pathname: string, request: NextRequest) {
+  return (
+    locales.find((locale) => pathname === `/${locale}` || pathname.startsWith(`/${locale}/`)) ??
+    getLocale(request)
+  )
+}
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
@@ -29,16 +36,23 @@ export function proxy(request: NextRequest) {
   const isPrivate = PROTECTED_ROUTES.some((route) => pathname.includes(route))
 
   const tokenRefresh = request.cookies.get(REFRESH_TOKEN_KEY)?.value
+  const pathLocale = getPathLocale(pathname, request)
 
-  if ((isPublic && tokenRefresh) || isRootPath) {
+  if (isRootPath) {
     const url = request.nextUrl.clone()
-    url.pathname = Routes.Profile
+    url.pathname = `/${pathLocale}/${tokenRefresh ? Routes.Profile : Routes.Login}`
     return NextResponse.redirect(url)
   }
 
-  if ((isPrivate && !tokenRefresh) || isRootPath) {
+  if (isPublic && tokenRefresh) {
     const url = request.nextUrl.clone()
-    url.pathname = Routes.Login
+    url.pathname = `/${pathLocale}/${Routes.Profile}`
+    return NextResponse.redirect(url)
+  }
+
+  if (isPrivate && !tokenRefresh) {
+    const url = request.nextUrl.clone()
+    url.pathname = `/${pathLocale}/${Routes.Login}`
     return NextResponse.redirect(url)
   }
 

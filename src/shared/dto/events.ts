@@ -1,3 +1,5 @@
+import { tagsSchema } from './tags'
+
 import z from 'zod'
 
 export const eventSchema = z.object({
@@ -8,10 +10,21 @@ export const eventSchema = z.object({
   ends_at: z.string().nullable(),
   focus: z.number(),
   access_status: z.string(),
+  tags: tagsSchema,
   created_at: z.string(),
   updated_at: z.string(),
 })
 
 export const eventsSchema = z.array(eventSchema)
 
+export const eventPayloadSchema = z.object({
+  title: z.string().min(1),
+  description: z.string().nullable(),
+  starts_at: z.string().nullable(),
+  ends_at: z.string().nullable(),
+  focus: z.number(),
+  tag_ids: z.array(z.string()),
+})
+
 export type EventType = z.infer<typeof eventSchema>
+export type EventPayloadType = z.infer<typeof eventPayloadSchema>

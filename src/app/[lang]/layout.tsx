@@ -4,6 +4,7 @@ import { getDictionary, hasLocale } from '@/shared/config'
 import { pagePaddings } from '@constants/styles'
 import { DictionaryProvider } from '@contexts/dictionary-context'
 import { QueryProvider } from '@contexts/query-client-provider'
+import { ThemeProvider } from '@contexts/theme-provider'
 import { Toaster } from '@ui/atoms'
 import { cn } from '@utils'
 import { Open_Sans, Raleway, Syncopate } from 'next/font/google'
@@ -41,20 +42,25 @@ export default async function RootLayout({ params, children }: LayoutProps<'/[la
     <html
       lang={lang}
       className={`${raleway.variable} ${openSans.variable} ${syncopate.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <QueryProvider>
-        <body className={cn('min-h-screen flex', pagePaddings)}>
-          <DictionaryProvider
-            value={{
-              dictionary: dict,
-              locale: lang,
-            }}
-          >
-            <Toaster />
-            {children}
-          </DictionaryProvider>
-        </body>
-      </QueryProvider>
+      <body
+        className={cn('min-h-screen flex bg-background text-text transition-colors', pagePaddings)}
+      >
+        <ThemeProvider>
+          <QueryProvider>
+            <DictionaryProvider
+              value={{
+                dictionary: dict,
+                locale: lang,
+              }}
+            >
+              <Toaster />
+              {children}
+            </DictionaryProvider>
+          </QueryProvider>
+        </ThemeProvider>
+      </body>
     </html>
   )
 }

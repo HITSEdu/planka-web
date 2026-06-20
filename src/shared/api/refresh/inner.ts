@@ -4,7 +4,7 @@ import { accessStorage } from '@utils'
 
 export const fetchRefreshSessionInner = async () => {
   try {
-    const url = new URL(endpoints.innerRefresh, process.env.NEXT_PUBLIC_APP_URL)
+    const url = new URL(endpoints.innerRefresh, window.location.origin)
     const response = await fetch(url.toString(), {
       method: 'POST',
       credentials: 'include',

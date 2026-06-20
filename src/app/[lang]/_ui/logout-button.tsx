@@ -3,45 +3,29 @@ import { useDictionary } from '@contexts/dictionary-context'
 import { ExitIcon } from '@ui/atoms/icons'
 import { cn } from '@utils'
 
-type Props = {
-  open: boolean
-}
-
-export const LogoutButton = ({ open }: Props) => {
+export const LogoutButton = () => {
   const dict = useDictionary().nav.logout
   const { mutate } = useLogout()
 
   return (
-    <li
-      className={
-        'absolute w-full bottom-4 border-l-[3px] border-error text-error bg-error/10 cursor-pointer'
-      }
-    >
-      <div
+    <li className="mt-auto">
+      <button
+        type="button"
         onClick={() => {
           mutate()
         }}
         className={cn(
-          'flex items-center withTransition gap-3 rounded-lg py-1 pl-8 hover:bg-black/5',
-          !open && 'translate-x-1.75',
+          'workspace-nav-link flex h-[72px] w-full items-center gap-4 rounded-[24px] border border-transparent px-4 text-[#ff8e98]',
+          'desktop:justify-center desktop:px-0',
         )}
+        title={dict.button}
       >
-        <span className="shrink-0">
-          <ExitIcon />
+        <span className="shrink-0 rounded-[20px] border border-current/25 p-3">
+          <ExitIcon width={26} height={26} />
         </span>
 
-        <div
-          className={cn(
-            `
-      overflow-hidden
-      withTransition
-    `,
-            open ? 'opacity-100 ml-0' : 'max-w-0 opacity-0 -ml-1',
-          )}
-        >
-          <span className="whitespace-nowrap">{dict.button}</span>
-        </div>
-      </div>
+        <span className="text-sm font-semibold desktop:hidden">{dict.button}</span>
+      </button>
     </li>
   )
 }

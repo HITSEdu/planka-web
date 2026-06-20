@@ -7,33 +7,39 @@ import { cn } from '@/shared/utils'
 import { toggleNavbarEventName } from '@constants/events'
 import { Routes } from '@constants/routes'
 import { useDictionary } from '@contexts/dictionary-context'
-import { ChevronRight, UserMenu } from '@ui/atoms/icons'
+import { CalendarDays, Menu, Settings } from 'lucide-react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useSelectedLayoutSegment } from 'next/navigation'
+import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
 
 const restrictedRoutes = [Routes.Login, Routes.Register] as string[]
 
 const items = [
   {
-    icon: <UserMenu />,
-    name: 'profile',
+    icon: <CalendarDays className="size-6" />,
+    name: 'schedule',
     link: Routes.Profile,
   },
+  {
+    icon: <Settings className="size-6" />,
+    name: 'profile',
+    link: Routes.Settings,
+  },
 ] as const
-
-const OPEN_WIDTH = 'min-w-[280px] w-[280px]'
-const CLOSED_WIDTH = 'min-w-0 w-0 desktop:min-w-[118px] desktop:w-[118px]'
 
 export const Navbar = () => {
   const toLocalized = useLocalizedPath()
   const [open, setOpen] = useState(true)
+  const { resolvedTheme } = useTheme()
 
   const segment = useSelectedLayoutSegment() ?? ''
 
   const dict = useDictionary().nav
 
   const toggle = () => setOpen((prev) => !prev)
+  const workspaceThemeClass = resolvedTheme === 'dark' ? 'workspace-dark' : 'workspace-light'
 
   useEffect(() => {
     document.addEventListener(toggleNavbarEventName, toggle)
@@ -49,10 +55,22 @@ export const Navbar = () => {
 
   return (
     <>
+      <button
+        type="button"
+        className={cn(
+          workspaceThemeClass,
+          'fixed left-4 top-6 z-[60] flex size-12 items-center justify-center rounded-full border border-white/20 bg-[color:var(--surface-elevated)] text-[color:var(--foreground)] shadow-[0_20px_45px_rgba(4,10,32,0.28)] backdrop-blur-xl transition-opacity duration-300 desktop:hidden',
+          open ? 'pointer-events-none opacity-0' : 'pointer-events-auto opacity-100',
+        )}
+        onClick={toggle}
+      >
+        <Menu className="size-5" />
+      </button>
+
       <div
         className={cn(
           `
-            fixed inset-0 z-40 bg-black/50 transition-opacity
+            fixed inset-0 z-40 bg-black/60 transition-opacity
             desktop:hidden
           `,
           open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none',
@@ -65,75 +83,62 @@ export const Navbar = () => {
           `
             hidden
             desktop:flex
-            withTransition
             desktop:mr-8.5 desktop-1920:mr-20.5
           `,
-          open ? OPEN_WIDTH : CLOSED_WIDTH,
+          'desktop:min-w-[148px] desktop:w-[148px]',
         )}
       />
 
       <aside
         className={cn(
-          `
-            fixed left-0 top-0 z-50 h-full
-            bg-nav-background
-            withTransition`,
-          open ? OPEN_WIDTH : `${CLOSED_WIDTH} overflow-hidden desktop:overflow-visible`,
+          workspaceThemeClass,
+          'workspace-sidebar fixed bottom-4 left-4 top-4 z-50 w-[228px] rounded-[32px] p-4 text-[color:var(--foreground)] transition-transform duration-300 ease-linear',
+          'desktop:w-[148px] desktop:translate-x-0',
+          open ? 'translate-x-0' : '-translate-x-[125%]',
         )}
       >
         <button
-          className="
-            absolute -right-3 top-8.5
-            bg-accent rounded-full flexCenter
-          "
+          type="button"
+          className="absolute -right-3 top-8 flex size-10 items-center justify-center rounded-full border border-white/20 bg-[color:var(--surface-elevated)] text-[color:var(--foreground)] desktop:hidden"
           onClick={toggle}
         >
-          <ChevronRight
-            width={26}
-            height={26}
-            className={cn('withTransition text-nav-background', open && 'rotate-180')}
-          />
+          <Menu className="size-5" />
         </button>
 
-        <nav className="h-full">
-          <div className="h-38 flex justify-center pt-4 items-start">
-            <div className="size-[65px] rounded-full bg-accent/10 text-accent flexCenter">
-              <UserMenu width={34} height={34} />
+        <nav className="flex h-full flex-col gap-6">
+          <div className="flex justify-center pt-1">
+            <div className="workspace-panel-solid relative h-[96px] w-[96px] overflow-hidden rounded-[28px] border border-white/10 desktop:h-[84px] desktop:w-[84px]">
+              <Image
+                src="/assets/auth/login/blue-blur-flower.png"
+                alt=""
+                fill
+                className="object-cover"
+                priority
+                unoptimized
+              />
             </div>
           </div>
 
-          <ul className="flex flex-col gap-2">
+          <ul className="flex flex-1 flex-col gap-3">
             {items.map((item) => (
-              <li
-                key={item.link}
-                className={cn(
-                  segment === item.link && 'border-l-[3px] border-accent text-accent bg-accent/10',
-                )}
-              >
+              <li key={item.link}>
                 <Link
                   href={toLocalized(item.link)}
+                  data-active={segment === item.link}
                   className={cn(
-                    'flex items-center withTransition gap-3 rounded-lg py-1 pl-8 hover:bg-black/5',
-                    !open && 'translate-x-1.75',
+                    'workspace-nav-link flex h-[72px] items-center gap-4 rounded-[24px] border border-transparent px-4',
+                    'desktop:justify-center desktop:px-0',
                   )}
+                  title={dict[item.name]}
                 >
-                  <span className="shrink-0">{item.icon}</span>
-
-                  <div
-                    className={cn(
-                      `
-      overflow-hidden
-      withTransition
-    `,
-                      open ? 'opacity-100 ml-0' : 'max-w-0 opacity-0 -ml-1',
-                    )}
-                  >
-                    <span className="whitespace-nowrap">{dict[item.name]}</span>
-                  </div>
+                  <span className="shrink-0 rounded-[20px] border border-current/20 p-3">
+                    {item.icon}
+                  </span>
+                  <span className="text-sm font-semibold desktop:hidden">{dict[item.name]}</span>
                 </Link>
               </li>
             ))}
-            <LogoutButton open={open} />
+            <LogoutButton />
           </ul>
         </nav>
       </aside>

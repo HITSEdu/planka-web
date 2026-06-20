@@ -1,5 +1,6 @@
 export * from './tokens'
 export * from './enums'
 export * from './events'
+export * from './tags'
 export * from './profile'
 export * from './user'

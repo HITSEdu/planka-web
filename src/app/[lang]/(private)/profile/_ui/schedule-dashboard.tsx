@@ -1,77 +1,154 @@
 'use client'
 
-import ProfileCalendar, { CalendarTag } from '../../../_ui/calendar'
+import ProfileCalendar from '../../../_ui/calendar'
+import ProfileTimeline from '../../../_ui/timeline'
 
-import { useGetEvents } from '@api/events-api/hooks'
+import type { EventType, TagType } from '@dto'
+
+import { useLogout } from '@actions/auth-actions'
+import { useCreateEvent, useDeleteEvent, useGetEvents, useUpdateEvent } from '@api/events-api/hooks'
+import { useCreateTag, useDeleteTag, useGetTags, useUpdateTag } from '@api/tags-api/hooks'
+import { Status } from '@constants/api'
+import { Routes } from '@constants/routes'
+import { useLocalizedPath } from '@hooks/use-localized-path'
 import { cn } from '@utils'
-import { Plus, Share2, SlidersHorizontal, SquareStack, Waypoints, X } from 'lucide-react'
-import { FormEvent, useEffect, useMemo, useState } from 'react'
-
-const LOCAL_TAGS_KEY = 'planka:schedule-tags'
-
-const defaultTags: CalendarTag[] = [
-  {
-    id: 'study',
-    name: 'Учеба',
-    color: '#91FFB5',
-  },
-  {
-    id: 'sport',
-    name: 'Спорт',
-    color: '#8A91FF',
-  },
-  {
-    id: 'home',
-    name: 'Дом',
-    color: '#FF8E98',
-  },
-]
+import {
+  Moon,
+  Pencil,
+  Plus,
+  Share2,
+  SlidersHorizontal,
+  SquareStack,
+  SunMedium,
+  Tag,
+  Trash2,
+  Waypoints,
+  X,
+} from 'lucide-react'
+import Link from 'next/link'
+import { useTheme } from 'next-themes'
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { toast } from 'sonner'
 
 const colorOptions = ['#91FFB5', '#8A91FF', '#FF8E98', '#919CFF', '#FFD166', '#A7F3FF']
 
-export const ScheduleDashboard = () => {
-  const [tags, setTags] = useState<CalendarTag[]>(() => {
-    if (typeof window === 'undefined') {
-      return defaultTags
-    }
+const modalFieldClassName =
+  'min-h-12 rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-[color:var(--foreground)] outline-none transition focus:bg-[color:var(--surface-muted)]'
 
-    const rawTags = window.localStorage.getItem(LOCAL_TAGS_KEY)
+const iconButtonClassName =
+  'flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] text-[color:var(--foreground)] transition hover:bg-[color:var(--surface-muted)] disabled:opacity-50'
 
-    if (!rawTags) {
-      return defaultTags
-    }
+const themeToggleButtonClassName =
+  'flex size-12 items-center justify-center rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] transition hover:bg-[color:var(--surface-muted)]'
 
-    try {
-      const parsed = JSON.parse(rawTags) as CalendarTag[]
+type ScheduleView = 'calendar' | 'timeline'
 
-      return Array.isArray(parsed) ? parsed : defaultTags
-    } catch {
-      window.localStorage.removeItem(LOCAL_TAGS_KEY)
+type Props = {
+  view: ScheduleView
+}
 
-      return defaultTags
-    }
-  })
+const toDateTimeInputValue = (date: Date) => {
+  const pad = (value: number) => String(value).padStart(2, '0')
+
+  return [
+    date.getFullYear(),
+    '-',
+    pad(date.getMonth() + 1),
+    '-',
+    pad(date.getDate()),
+    'T',
+    pad(date.getHours()),
+    ':',
+    pad(date.getMinutes()),
+  ].join('')
+}
+
+const eventDateInputValue = (value: string | null, fallback: string) =>
+  toDateTimeInputValue(new Date(value ?? fallback))
+
+const addHours = (value: string, hours: number) => {
+  const date = new Date(value)
+
+  date.setHours(date.getHours() + hours)
+
+  return toDateTimeInputValue(date)
+}
+
+export const ScheduleDashboard = ({ view }: Props) => {
+  const toLocalized = useLocalizedPath()
+  const { resolvedTheme, setTheme } = useTheme()
   const [selectedTagName, setSelectedTagName] = useState<string | undefined>()
   const [isTagModalOpen, setIsTagModalOpen] = useState(false)
+  const [editingTag, setEditingTag] = useState<TagType | null>(null)
   const [tagName, setTagName] = useState('')
   const [tagColor, setTagColor] = useState(colorOptions[0])
+  const [isEventModalOpen, setIsEventModalOpen] = useState(false)
+  const [editingEvent, setEditingEvent] = useState<EventType | null>(null)
+  const [eventTitle, setEventTitle] = useState('')
+  const [eventDescription, setEventDescription] = useState('')
+  const [eventStartsAt, setEventStartsAt] = useState('')
+  const [eventEndsAt, setEventEndsAt] = useState('')
+  const [eventFocus, setEventFocus] = useState(0)
+  const [eventTagIds, setEventTagIds] = useState<string[]>([])
+  const didHandleUnauthorized = useRef(false)
 
+  const { mutate: logout } = useLogout()
+  const {
+    data: tags = [],
+    isLoading: isTagsLoading,
+    isError: isTagsError,
+    error: tagsError,
+  } = useGetTags()
+  const createTag = useCreateTag()
+  const updateTag = useUpdateTag()
+  const deleteTag = useDeleteTag()
   const {
     data: events = [],
     isLoading,
     isError,
     error,
   } = useGetEvents({ tagName: selectedTagName })
-  const calendarEvents = isError ? [] : events
-
-  useEffect(() => {
-    window.localStorage.setItem(LOCAL_TAGS_KEY, JSON.stringify(tags))
-  }, [tags])
+  const createEvent = useCreateEvent()
+  const updateEvent = useUpdateEvent()
+  const deleteEvent = useDeleteEvent()
+  const visibleEvents = isError ? [] : events
 
   const selectedTag = useMemo(
     () => tags.find((tag) => tag.name === selectedTagName),
     [selectedTagName, tags],
   )
+
+  const isTagMutationPending = createTag.isPending || updateTag.isPending || deleteTag.isPending
+  const isEventMutationPending =
+    createEvent.isPending || updateEvent.isPending || deleteEvent.isPending
+  const currentTheme = resolvedTheme === 'dark' ? 'dark' : 'light'
+  const workspaceThemeClass = currentTheme === 'dark' ? 'workspace-dark' : 'workspace-light'
+
+  useEffect(() => {
+    const tagsUnauthorized =
+      isTagsError && tagsError instanceof Error && tagsError.message === Status.Unauthorized
+    const eventsUnauthorized =
+      isError && error instanceof Error && error.message === Status.Unauthorized
+
+    if (!didHandleUnauthorized.current && (tagsUnauthorized || eventsUnauthorized)) {
+      didHandleUnauthorized.current = true
+      logout()
+    }
+  }, [error, isError, isTagsError, logout, tagsError])
+
+  const openCreateTagModal = () => {
+    setEditingTag(null)
+    setTagName('')
+    setTagColor(colorOptions[0])
+    setIsTagModalOpen(true)
+  }
+
+  const openEditTagModal = (tag: TagType) => {
+    setEditingTag(tag)
+    setTagName(tag.name)
+    setTagColor(tag.color)
+    setIsTagModalOpen(true)
+  }
 
   const submitTag = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -82,139 +159,427 @@ export const ScheduleDashboard = () => {
       return
     }
 
-    const nextTag: CalendarTag = {
-      id: crypto.randomUUID(),
+    const dto = {
       name,
       color: tagColor,
     }
 
-    setTags((currentTags) => [...currentTags, nextTag])
-    setTagName('')
-    setTagColor(colorOptions[0])
-    setIsTagModalOpen(false)
+    if (editingTag) {
+      updateTag.mutate(
+        { id: editingTag.id, dto },
+        {
+          onSuccess: () => {
+            setSelectedTagName(name)
+            setIsTagModalOpen(false)
+          },
+          onError: () => toast.error('Не удалось обновить тэг'),
+        },
+      )
+      return
+    }
+
+    createTag.mutate(dto, {
+      onSuccess: () => {
+        setTagName('')
+        setTagColor(colorOptions[0])
+        setIsTagModalOpen(false)
+      },
+      onError: () => toast.error('Не удалось создать тэг'),
+    })
+  }
+
+  const deleteSelectedTag = () => {
+    if (!selectedTag) {
+      return
+    }
+
+    deleteTag.mutate(selectedTag.id, {
+      onSuccess: () => {
+        setSelectedTagName(undefined)
+      },
+      onError: () => toast.error('Не удалось удалить тэг'),
+    })
+  }
+
+  const openCreateEventModal = () => {
+    const start = new Date()
+
+    start.setMinutes(0, 0, 0)
+    start.setHours(start.getHours() + 1)
+
+    const startValue = toDateTimeInputValue(start)
+
+    setEditingEvent(null)
+    setEventTitle('')
+    setEventDescription('')
+    setEventStartsAt(startValue)
+    setEventEndsAt(addHours(startValue, 1))
+    setEventFocus(0)
+    setEventTagIds(selectedTag ? [selectedTag.id] : [])
+    setIsEventModalOpen(true)
+  }
+
+  const openEditEventModal = (event: EventType) => {
+    const startValue = eventDateInputValue(event.starts_at, event.created_at)
+
+    setEditingEvent(event)
+    setEventTitle(event.title)
+    setEventDescription(event.description ?? '')
+    setEventStartsAt(startValue)
+    setEventEndsAt(
+      event.ends_at
+        ? eventDateInputValue(event.ends_at, event.created_at)
+        : addHours(startValue, 1),
+    )
+    setEventFocus(event.focus)
+    setEventTagIds(event.tags.map((tag) => tag.id))
+    setIsEventModalOpen(true)
+  }
+
+  const toggleEventTag = (tagID: string) => {
+    setEventTagIds((currentTagIDs) =>
+      currentTagIDs.includes(tagID)
+        ? currentTagIDs.filter((currentTagID) => currentTagID !== tagID)
+        : [...currentTagIDs, tagID],
+    )
+  }
+
+  const submitEvent = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    const title = eventTitle.trim()
+
+    if (!title) {
+      toast.error('Введите название события')
+      return
+    }
+
+    const startsAt = eventStartsAt ? new Date(eventStartsAt).toISOString() : null
+    const endsAt = eventEndsAt ? new Date(eventEndsAt).toISOString() : null
+
+    if (startsAt && endsAt && new Date(startsAt) > new Date(endsAt)) {
+      toast.error('Дата начала должна быть раньше даты окончания')
+      return
+    }
+
+    const dto = {
+      title,
+      description: eventDescription.trim() || null,
+      starts_at: startsAt,
+      ends_at: endsAt,
+      focus: eventFocus,
+      tag_ids: eventTagIds,
+    }
+
+    if (editingEvent) {
+      updateEvent.mutate(
+        { id: editingEvent.id, dto },
+        {
+          onSuccess: () => setIsEventModalOpen(false),
+          onError: () => toast.error('Не удалось обновить событие'),
+        },
+      )
+      return
+    }
+
+    createEvent.mutate(dto, {
+      onSuccess: () => setIsEventModalOpen(false),
+      onError: () => toast.error('Не удалось создать событие'),
+    })
+  }
+
+  const deleteEditingEvent = () => {
+    if (!editingEvent) {
+      return
+    }
+
+    deleteEvent.mutate(editingEvent.id, {
+      onSuccess: () => setIsEventModalOpen(false),
+      onError: () => toast.error('Не удалось удалить событие'),
+    })
   }
 
   return (
-    <section className="-mx-4 -my-4.75 min-h-screen bg-[radial-gradient(100%_197.75%_at_100%_50%,#00114D_0%,#060606_49.33%,#0D0D0D_100%)] px-5 py-8 text-white tablet-600:-mx-8 tablet:-mx-12.5 tablet:px-10 desktop:my-[-45px] desktop:ml-0 desktop:mr-[-152px] desktop:px-12 desktop:py-14 desktop-1920:mr-[-200px]">
-      <div className="mx-auto flex min-h-full w-full max-w-[1840px] flex-col">
-        <header className="flex flex-col gap-6 tablet:flex-row tablet:items-start tablet:justify-between">
-          <h1 className="font-raleway text-[52px] font-bold leading-none text-white tablet:text-[72px] desktop:text-[92px]">
-            Мое расписание
-          </h1>
+    <section
+      className={cn(
+        workspaceThemeClass,
+        'workspace-screen -mx-4 -my-4.75 min-h-screen px-5 py-8 text-[color:var(--foreground)] tablet-600:-mx-8 tablet:-mx-12.5 tablet:px-10 desktop:my-[-45px] desktop:ml-0 desktop:mr-[-152px] desktop:px-12 desktop:py-14 desktop-1920:mr-[-200px]',
+      )}
+    >
+      <div className="relative z-10 mx-auto flex min-h-full w-full max-w-[1680px] flex-col gap-8">
+        <header className="flex flex-col gap-8 xl:flex-row xl:items-start xl:justify-between">
+          <div className="space-y-5">
+            <span className="block font-syncopate text-xs uppercase tracking-[0.34em] text-[color:var(--muted-foreground)]">
+              Planka
+            </span>
 
-          <button className="flex h-[54px] w-fit items-center gap-3 rounded-[10px] border-2 border-white px-6 font-open-sans text-[28px] font-bold leading-none text-white transition hover:bg-white/10 tablet:h-[74px] tablet:px-10 tablet:text-[42px]">
-            <Share2 className="size-7 tablet:size-9" />
-            Поделиться
-          </button>
+            <div className="space-y-4">
+              <h1 className="font-raleway text-[46px] font-bold leading-none text-[color:var(--foreground)] tablet:text-[64px] desktop:text-[76px]">
+                Мое расписание
+              </h1>
+              <p className="max-w-[720px] text-base leading-7 text-[color:var(--muted-foreground)] tablet:text-lg">
+                Дела, тэги и представления собраны в один рабочий экран, как в приватной части
+                приложения, а не в отдельные разрозненные страницы.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <button
+              type="button"
+              className={cn(
+                themeToggleButtonClassName,
+                currentTheme === 'light' && 'ring-2 ring-white/50',
+              )}
+              onClick={() => setTheme('light')}
+              title="Светлая тема"
+            >
+              <SunMedium className="size-5" />
+            </button>
+
+            <button
+              type="button"
+              className={cn(
+                themeToggleButtonClassName,
+                currentTheme === 'dark' && 'ring-2 ring-white/50',
+              )}
+              onClick={() => setTheme('dark')}
+              title="Темная тема"
+            >
+              <Moon className="size-5" />
+            </button>
+
+            <button
+              type="button"
+              className="flex items-center gap-2 rounded-[18px] bg-accent px-5 py-3 text-sm font-semibold text-primary transition hover:opacity-90"
+              onClick={openCreateEventModal}
+            >
+              <Plus className="size-4" />
+              Создать дело
+            </button>
+
+            <button
+              type="button"
+              className="workspace-outline-button flex items-center gap-3 rounded-[18px] px-6 py-3 text-lg font-semibold"
+              onClick={() => toast.info('Совместный доступ к событиям добавим следующим шагом')}
+            >
+              <Share2 className="size-5" />
+              Поделиться
+            </button>
+          </div>
         </header>
 
-        <div className="mt-14 flex flex-wrap items-center gap-x-6 gap-y-4">
-          <h2 className="font-raleway text-[38px] font-bold leading-none text-white tablet:text-[52px]">
-            Тэги
-          </h2>
+        <div className="workspace-panel rounded-[32px] px-5 py-6 tablet:px-7 desktop:px-10">
+          <div className="flex flex-col gap-7">
+            <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-3">
+                  <Tag className="size-7 text-[color:var(--foreground)]" />
+                  <h2 className="font-raleway text-[34px] font-bold leading-none tablet:text-[42px]">
+                    Тэги
+                  </h2>
+                </div>
 
-          <div className="flex flex-wrap items-center gap-5">
-            <button
-              className={cn(
-                'flex h-8 items-center rounded-[16px_16px_0_16px] border border-white bg-[#262626] px-3 font-open-sans text-xl leading-none text-white',
-                !selectedTagName && 'ring-2 ring-white',
-              )}
-              onClick={() => setSelectedTagName(undefined)}
-            >
-              Все
-            </button>
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    className={cn(
+                      'workspace-chip inline-flex h-11 items-center rounded-full px-4 text-base font-medium transition',
+                      !selectedTagName && 'ring-2 ring-white/70',
+                    )}
+                    onClick={() => setSelectedTagName(undefined)}
+                  >
+                    Все
+                  </button>
 
-            {tags.map((tag) => (
-              <button
-                key={tag.id}
-                className={cn(
-                  'flex h-8 items-center gap-2 rounded-[16px_16px_0_16px] border border-white bg-[#262626] pl-1 pr-3 font-open-sans text-xl leading-none text-white',
-                  selectedTag?.id === tag.id && 'ring-2 ring-white',
+                  {tags.map((tag) => (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      className={cn(
+                        'workspace-chip inline-flex h-11 items-center gap-2 rounded-full pl-2 pr-4 text-base font-medium transition',
+                        selectedTag?.id === tag.id && 'ring-2 ring-white/70',
+                      )}
+                      onClick={() => setSelectedTagName(tag.name)}
+                    >
+                      <span
+                        className="size-6 shrink-0 rounded-full border border-white/20"
+                        style={{ backgroundColor: tag.color }}
+                      />
+                      {tag.name}
+                    </button>
+                  ))}
+
+                  <button
+                    type="button"
+                    className={cn(
+                      iconButtonClassName,
+                      'workspace-soft-button h-11 w-11 rounded-full',
+                    )}
+                    aria-label="Создать тэг"
+                    onClick={openCreateTagModal}
+                    title="Создать тэг"
+                  >
+                    <Plus className="size-4" />
+                  </button>
+
+                  {selectedTag && (
+                    <>
+                      <button
+                        type="button"
+                        className={cn(
+                          iconButtonClassName,
+                          'workspace-soft-button h-11 w-11 rounded-full',
+                        )}
+                        aria-label="Редактировать тэг"
+                        onClick={() => openEditTagModal(selectedTag)}
+                        title="Редактировать тэг"
+                      >
+                        <Pencil className="size-4" />
+                      </button>
+
+                      <button
+                        type="button"
+                        className={cn(
+                          iconButtonClassName,
+                          'workspace-soft-button h-11 w-11 rounded-full',
+                        )}
+                        aria-label="Удалить тэг"
+                        disabled={deleteTag.isPending}
+                        onClick={deleteSelectedTag}
+                        title="Удалить тэг"
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 text-sm text-[color:var(--muted-foreground)]">
+                <span className="workspace-chip rounded-full px-3 py-1.5 font-medium">
+                  {visibleEvents.length} событий
+                </span>
+
+                <span className="workspace-chip rounded-full px-3 py-1.5 font-medium">
+                  {selectedTag ? `Фильтр: ${selectedTag.name}` : 'Все тэги'}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-4 border-b border-[color:var(--foreground)]/80 pb-4 xl:flex-row xl:items-end xl:justify-between">
+              <div className="flex flex-wrap items-center gap-8">
+                {[
+                  {
+                    key: 'calendar' as const,
+                    label: 'Календарь',
+                    icon: SquareStack,
+                    href: toLocalized(Routes.Profile),
+                  },
+                  {
+                    key: 'timeline' as const,
+                    label: 'Таймлайн',
+                    icon: Waypoints,
+                    href: toLocalized(Routes.Timeline),
+                  },
+                ].map((item) => (
+                  <Link
+                    key={item.key}
+                    href={item.href}
+                    data-active={view === item.key}
+                    className="workspace-tab flex items-center gap-3 pb-1 text-[30px] font-bold leading-none tablet:text-[34px]"
+                  >
+                    <item.icon className="size-7" />
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-3 text-lg font-semibold text-[color:var(--foreground)]">
+                <SlidersHorizontal className="size-6" />
+                <span>{selectedTag ? `Фильтр: ${selectedTag.name}` : 'Фильтр'}</span>
+              </div>
+            </div>
+
+            {isTagsError && (
+              <div className="rounded-2xl border border-amber-300/50 bg-amber-100/70 px-4 py-3 text-sm text-amber-950 dark:bg-amber-500/10 dark:text-amber-100">
+                Тэги пока не загрузились.
+                {tagsError instanceof Error ? ` Причина: ${tagsError.message}` : ''}
+              </div>
+            )}
+
+            {isTagsLoading && (
+              <div className="text-sm text-[color:var(--muted-foreground)]">Загружаем тэги...</div>
+            )}
+
+            {isError && (
+              <div className="rounded-2xl border border-amber-300/50 bg-amber-100/70 px-4 py-3 text-sm text-amber-950 dark:bg-amber-500/10 dark:text-amber-100">
+                События пока не загрузились, показываем пустое представление.
+                {error instanceof Error ? ` Причина: ${error.message}` : ''}
+              </div>
+            )}
+
+            {isLoading ? (
+              <div className="workspace-panel-solid flex h-[420px] items-center justify-center rounded-[28px] text-lg font-medium text-[color:var(--muted-foreground)]">
+                Загружаем события...
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {!visibleEvents.length && (
+                  <div className="workspace-panel-solid rounded-[28px] border border-dashed px-6 py-8 text-sm leading-7 text-[color:var(--muted-foreground)]">
+                    Пока пусто. Создай первое дело, добавь тэги и переключайся между календарем и
+                    таймлайном.
+                  </div>
                 )}
-                onClick={() => setSelectedTagName(tag.name)}
-              >
-                <span
-                  className="size-6 shrink-0 rounded-full"
-                  style={{ backgroundColor: tag.color }}
-                />
-                {tag.name}
-              </button>
-            ))}
 
-            <button
-              className="flex size-10 items-center justify-center rounded-full border border-white/80 text-white transition hover:bg-white/10"
-              aria-label="Создать тэг"
-              onClick={() => setIsTagModalOpen(true)}
-            >
-              <Plus className="size-5" />
-            </button>
+                {view === 'timeline' ? (
+                  <ProfileTimeline
+                    events={visibleEvents}
+                    tags={tags}
+                    onEventClick={openEditEventModal}
+                  />
+                ) : (
+                  <ProfileCalendar
+                    events={visibleEvents}
+                    tags={tags}
+                    onEventClick={openEditEventModal}
+                  />
+                )}
+              </div>
+            )}
           </div>
-        </div>
-
-        <div className="mt-10 flex items-end justify-between border-b-[5px] border-white pb-3">
-          <div className="flex items-center gap-10">
-            <button className="flex items-center gap-2 font-raleway text-[28px] font-bold leading-none text-white tablet:text-[34px]">
-              <SquareStack className="size-9" />
-              Календарь
-            </button>
-
-            <button className="flex items-center gap-2 font-raleway text-[28px] font-bold leading-none text-white/90 tablet:text-[34px]">
-              <Waypoints className="size-9" />
-              Таймлайн
-            </button>
-          </div>
-
-          <button className="flex items-center gap-3 font-raleway text-[28px] font-bold leading-none text-white tablet:text-[34px]">
-            <SlidersHorizontal className="size-9" />
-            Фильтр
-          </button>
-        </div>
-
-        <div className="mt-12 min-h-[860px] flex-1">
-          {isError && (
-            <div className="mb-4 rounded-[12px] border border-white/50 bg-white/10 px-4 py-3 font-open-sans text-base text-white">
-              События пока не загрузились, показываем пустой календарь.
-              {error instanceof Error ? ` Причина: ${error.message}` : ''}
-            </div>
-          )}
-
-          {isLoading ? (
-            <div className="flex h-[420px] items-center justify-center font-open-sans text-2xl text-white">
-              Загружаем события...
-            </div>
-          ) : (
-            <ProfileCalendar events={calendarEvents} tags={tags} />
-          )}
         </div>
       </div>
 
       {isTagModalOpen && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/60 px-4">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/45 px-4">
           <form
-            className="w-full max-w-[420px] rounded-[18px] border-2 border-white bg-[#111525] p-6 text-white shadow-[0_20px_80px_rgba(0,0,0,0.45)]"
+            className="workspace-modal w-full max-w-[440px] rounded-[28px] p-6 text-[color:var(--foreground)]"
             onSubmit={submitTag}
           >
-            <div className="mb-6 flex items-center justify-between">
-              <h3 className="font-raleway text-[32px] font-bold leading-none">Новый тэг</h3>
+            <div className="mb-6 flex items-center justify-between gap-4">
+              <h3 className="font-raleway text-[30px] font-bold leading-none">
+                {editingTag ? 'Редактировать тэг' : 'Новый тэг'}
+              </h3>
               <button
                 type="button"
-                className="flex size-9 items-center justify-center rounded-full border border-white/70 transition hover:bg-white/10"
+                className={iconButtonClassName}
                 onClick={() => setIsTagModalOpen(false)}
               >
-                <X className="size-5" />
+                <X className="size-4" />
               </button>
             </div>
 
-            <label className="flex flex-col gap-2 font-open-sans text-lg">
+            <label className="flex flex-col gap-2 text-sm font-medium text-[color:var(--muted-foreground)]">
               Название
               <input
                 value={tagName}
                 onChange={(event) => setTagName(event.target.value)}
-                className="h-12 rounded-[12px] border border-white bg-transparent px-4 text-white outline-none focus:bg-white/10"
+                className={modalFieldClassName}
               />
             </label>
 
-            <div className="mt-5 flex flex-col gap-3 font-open-sans text-lg">
+            <div className="mt-5 flex flex-col gap-3 text-sm font-medium text-[color:var(--muted-foreground)]">
               Цвет
               <div className="flex flex-wrap gap-3">
                 {colorOptions.map((color) => (
@@ -222,8 +587,9 @@ export const ScheduleDashboard = () => {
                     key={color}
                     type="button"
                     className={cn(
-                      'size-9 rounded-full border border-white/80',
-                      tagColor === color && 'ring-2 ring-white ring-offset-2 ring-offset-[#111525]',
+                      'size-10 rounded-full border border-white/10',
+                      tagColor === color &&
+                        'ring-2 ring-accent ring-offset-2 ring-offset-[color:var(--surface-elevated)]',
                     )}
                     style={{ backgroundColor: color }}
                     onClick={() => setTagColor(color)}
@@ -232,9 +598,136 @@ export const ScheduleDashboard = () => {
               </div>
             </div>
 
-            <button className="mt-8 h-12 w-full rounded-[12px] border-2 border-white font-open-sans text-xl font-bold transition hover:bg-white/10">
-              Создать
+            <button
+              className="mt-8 h-12 w-full rounded-2xl bg-accent font-semibold text-primary transition hover:bg-button-primary-hover disabled:opacity-60"
+              disabled={isTagMutationPending}
+            >
+              {editingTag ? 'Сохранить' : 'Создать'}
             </button>
+          </form>
+        </div>
+      )}
+
+      {isEventModalOpen && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/45 px-4">
+          <form
+            className="workspace-modal max-h-[92vh] w-full max-w-[660px] overflow-y-auto rounded-[28px] p-6 text-[color:var(--foreground)]"
+            onSubmit={submitEvent}
+          >
+            <div className="mb-6 flex items-center justify-between gap-4">
+              <h3 className="font-raleway text-[30px] font-bold leading-none">
+                {editingEvent ? 'Редактировать событие' : 'Новое событие'}
+              </h3>
+              <button
+                type="button"
+                className={iconButtonClassName}
+                onClick={() => setIsEventModalOpen(false)}
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            <div className="grid gap-5">
+              <label className="flex flex-col gap-2 text-sm font-medium text-[color:var(--muted-foreground)]">
+                Название
+                <input
+                  value={eventTitle}
+                  onChange={(event) => setEventTitle(event.target.value)}
+                  className={modalFieldClassName}
+                />
+              </label>
+
+              <label className="flex flex-col gap-2 text-sm font-medium text-[color:var(--muted-foreground)]">
+                Описание
+                <textarea
+                  value={eventDescription}
+                  onChange={(event) => setEventDescription(event.target.value)}
+                  className={cn(modalFieldClassName, 'min-h-28 resize-y')}
+                />
+              </label>
+
+              <div className="grid gap-4 tablet:grid-cols-2">
+                <label className="flex flex-col gap-2 text-sm font-medium text-[color:var(--muted-foreground)]">
+                  Начало
+                  <input
+                    type="datetime-local"
+                    value={eventStartsAt}
+                    onChange={(event) => setEventStartsAt(event.target.value)}
+                    className={modalFieldClassName}
+                  />
+                </label>
+
+                <label className="flex flex-col gap-2 text-sm font-medium text-[color:var(--muted-foreground)]">
+                  Окончание
+                  <input
+                    type="datetime-local"
+                    value={eventEndsAt}
+                    onChange={(event) => setEventEndsAt(event.target.value)}
+                    className={modalFieldClassName}
+                  />
+                </label>
+              </div>
+
+              <label className="flex flex-col gap-3 text-sm font-medium text-[color:var(--muted-foreground)]">
+                Фокус: {eventFocus.toFixed(1)}
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value={eventFocus}
+                  onChange={(event) => setEventFocus(Number(event.target.value))}
+                  style={{ accentColor: 'var(--accent)' }}
+                />
+              </label>
+
+              <div className="flex flex-col gap-3 text-sm font-medium text-[color:var(--muted-foreground)]">
+                Тэги
+                <div className="flex flex-wrap gap-2">
+                  {tags.map((tag) => {
+                    const selected = eventTagIds.includes(tag.id)
+
+                    return (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        className={cn(
+                          'inline-flex h-10 items-center gap-2 rounded-full border border-[color:var(--border)] bg-[color:var(--surface)] pl-2 pr-4 text-sm font-medium text-[color:var(--foreground)] transition hover:bg-[color:var(--surface-muted)]',
+                          selected && 'ring-2 ring-accent',
+                        )}
+                        onClick={() => toggleEventTag(tag.id)}
+                      >
+                        <span
+                          className="size-5 shrink-0 rounded-full border border-black/5"
+                          style={{ backgroundColor: tag.color }}
+                        />
+                        {tag.name}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8 flex flex-col gap-3 tablet:flex-row">
+              {editingEvent && (
+                <button
+                  type="button"
+                  className="rounded-2xl border border-red-300/70 bg-red-500/10 px-5 py-3 font-semibold text-red-700 transition hover:bg-red-500/15 disabled:opacity-60 dark:text-red-100"
+                  disabled={isEventMutationPending}
+                  onClick={deleteEditingEvent}
+                >
+                  Удалить
+                </button>
+              )}
+
+              <button
+                className="flex-1 rounded-2xl bg-accent px-5 py-3 font-semibold text-primary transition hover:bg-button-primary-hover disabled:opacity-60"
+                disabled={isEventMutationPending}
+              >
+                {editingEvent ? 'Сохранить' : 'Создать'}
+              </button>
+            </div>
           </form>
         </div>
       )}

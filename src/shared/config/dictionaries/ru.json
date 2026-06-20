@@ -3,6 +3,8 @@
   "nav": {
     "index": "Главная",
     "profile": "Профиль",
+    "schedule": "Расписание",
+    "timeline": "Таймлайн",
     "logout": {
       "button": "Выйти",
       "error": "Ошибка выхода!"

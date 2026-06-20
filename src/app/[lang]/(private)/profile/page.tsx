@@ -8,5 +8,5 @@ export default async function Profile({ params }: PageProps<'/[lang]'>) {
 
   if (!hasLocale(lang)) notFound()
 
-  return <ScheduleDashboard />
+  return <ScheduleDashboard view="calendar" />
 }
