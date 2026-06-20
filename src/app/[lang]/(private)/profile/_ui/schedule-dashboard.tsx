@@ -11,6 +11,7 @@ import { useCreateTag, useDeleteTag, useGetTags, useUpdateTag } from '@api/tags-
 import { Status } from '@constants/api'
 import { Routes } from '@constants/routes'
 import { useLocalizedPath } from '@hooks/use-localized-path'
+import { ColorPicker } from '@ui/molecules'
 import { cn } from '@utils'
 import {
   Moon,
@@ -27,10 +28,8 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useTheme } from 'next-themes'
-import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
-
-const colorOptions = ['#91FFB5', '#8A91FF', '#FF8E98', '#919CFF', '#FFD166', '#A7F3FF']
 
 const modalFieldClassName =
   'min-h-12 rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-[color:var(--foreground)] outline-none transition focus:bg-[color:var(--surface-muted)]'
@@ -81,7 +80,7 @@ export const ScheduleDashboard = ({ view }: Props) => {
   const [isTagModalOpen, setIsTagModalOpen] = useState(false)
   const [editingTag, setEditingTag] = useState<TagType | null>(null)
   const [tagName, setTagName] = useState('')
-  const [tagColor, setTagColor] = useState(colorOptions[0])
+  const [tagColor, setTagColor] = useState<string | null>(null)
   const [isEventModalOpen, setIsEventModalOpen] = useState(false)
   const [editingEvent, setEditingEvent] = useState<EventType | null>(null)
   const [eventTitle, setEventTitle] = useState('')
@@ -139,7 +138,7 @@ export const ScheduleDashboard = ({ view }: Props) => {
   const openCreateTagModal = () => {
     setEditingTag(null)
     setTagName('')
-    setTagColor(colorOptions[0])
+    setTagColor(null)
     setIsTagModalOpen(true)
   }
 
@@ -156,6 +155,11 @@ export const ScheduleDashboard = ({ view }: Props) => {
     const name = tagName.trim()
 
     if (!name) {
+      return
+    }
+
+    if (!tagColor) {
+      toast.error('Выберите цвет тэга')
       return
     }
 
@@ -181,7 +185,7 @@ export const ScheduleDashboard = ({ view }: Props) => {
     createTag.mutate(dto, {
       onSuccess: () => {
         setTagName('')
-        setTagColor(colorOptions[0])
+        setTagColor(null)
         setIsTagModalOpen(false)
       },
       onError: () => toast.error('Не удалось создать тэг'),
@@ -298,6 +302,34 @@ export const ScheduleDashboard = ({ view }: Props) => {
       onError: () => toast.error('Не удалось удалить событие'),
     })
   }
+
+  const handleEventDateChange = useCallback(
+    async ({ id, starts_at, ends_at }: { id: string; starts_at: string; ends_at: string }) => {
+      const event = events.find((item) => item.id === id)
+
+      if (!event) {
+        throw new Error('Event not found')
+      }
+
+      try {
+        await updateEvent.mutateAsync({
+          id,
+          dto: {
+            title: event.title,
+            description: event.description,
+            starts_at,
+            ends_at,
+            focus: event.focus,
+            tag_ids: event.tags.map((tag) => tag.id),
+          },
+        })
+      } catch {
+        toast.error('Не удалось сохранить новое время события')
+        throw new Error('Failed to update event dates')
+      }
+    },
+    [events, updateEvent],
+  )
 
   return (
     <section
@@ -543,6 +575,7 @@ export const ScheduleDashboard = ({ view }: Props) => {
                     events={visibleEvents}
                     tags={tags}
                     onEventClick={openEditEventModal}
+                    onEventDateChange={handleEventDateChange}
                   />
                 )}
               </div>
@@ -581,21 +614,7 @@ export const ScheduleDashboard = ({ view }: Props) => {
 
             <div className="mt-5 flex flex-col gap-3 text-sm font-medium text-[color:var(--muted-foreground)]">
               Цвет
-              <div className="flex flex-wrap gap-3">
-                {colorOptions.map((color) => (
-                  <button
-                    key={color}
-                    type="button"
-                    className={cn(
-                      'size-10 rounded-full border border-white/10',
-                      tagColor === color &&
-                        'ring-2 ring-accent ring-offset-2 ring-offset-[color:var(--surface-elevated)]',
-                    )}
-                    style={{ backgroundColor: color }}
-                    onClick={() => setTagColor(color)}
-                  />
-                ))}
-              </div>
+              <ColorPicker value={tagColor} onChange={setTagColor} />
             </div>
 
             <button

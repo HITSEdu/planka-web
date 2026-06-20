@@ -1,3 +1,4 @@
+export { ColorPicker } from './color-picker'
 export { TextField } from './text-field'
 export { SwitchField } from './switch-field'
 export { SubscribeButton } from './subscribe-button'

@@ -18,6 +18,13 @@
   --popover: #ffffff;
   --popover-foreground: #0f172a;
   --radius: 16px;
+  --schedule-surface: #ffffff;
+  --schedule-surface-muted: #eef3ff;
+  --schedule-surface-today: rgba(55, 95, 255, 0.12);
+  --schedule-header-text: #0f172a;
+  --schedule-body-text: #142033;
+  --schedule-muted-text: #64748b;
+  --schedule-grid-line: rgba(15, 23, 42, 0.1);
 }
 
 .dark {
@@ -37,6 +44,13 @@
   --divider: rgba(148, 163, 184, 0.16);
   --popover: #111c30;
   --popover-foreground: #f8fafc;
+  --schedule-surface: #0f172a;
+  --schedule-surface-muted: #162033;
+  --schedule-surface-today: rgba(122, 162, 255, 0.16);
+  --schedule-header-text: #f8fafc;
+  --schedule-body-text: #e5edf8;
+  --schedule-muted-text: #94a3b8;
+  --schedule-grid-line: rgba(148, 163, 184, 0.18);
 }
 
 @theme inline {
@@ -130,6 +144,13 @@ body {
   --workspace-panel-bg: linear-gradient(126.08deg, rgba(255, 255, 255, 0.15) 13.84%, rgba(255, 255, 255, 0.08) 74.14%);
   --workspace-panel-solid-bg: rgba(7, 11, 26, 0.7);
   --workspace-shadow: 0 30px 90px rgba(0, 0, 0, 0.28);
+  --schedule-surface: rgba(11, 18, 39, 0.94);
+  --schedule-surface-muted: rgba(17, 27, 48, 0.9);
+  --schedule-surface-today: rgba(32, 169, 223, 0.18);
+  --schedule-header-text: #ffffff;
+  --schedule-body-text: rgba(255, 255, 255, 0.92);
+  --schedule-muted-text: rgba(255, 255, 255, 0.72);
+  --schedule-grid-line: rgba(255, 255, 255, 0.14);
   color-scheme: dark;
 }
 
@@ -155,6 +176,13 @@ body {
   --workspace-panel-bg: linear-gradient(126.08deg, rgba(255, 255, 255, 0.82) 13.84%, rgba(255, 255, 255, 0.66) 74.14%);
   --workspace-panel-solid-bg: rgba(255, 255, 255, 0.76);
   --workspace-shadow: 0 20px 70px rgba(43, 71, 118, 0.16);
+  --schedule-surface: rgba(255, 255, 255, 0.9);
+  --schedule-surface-muted: rgba(243, 247, 255, 0.96);
+  --schedule-surface-today: rgba(26, 141, 208, 0.14);
+  --schedule-header-text: #10203d;
+  --schedule-body-text: #10203d;
+  --schedule-muted-text: #4d6488;
+  --schedule-grid-line: rgba(16, 32, 61, 0.12);
   color-scheme: light;
 }
 
@@ -265,80 +293,57 @@ body {
 .schedule-bryntum {
   --b-primary: var(--accent);
   --b-widget-color-scheme: light;
-  --b-widget-color: var(--foreground);
-  --b-widget-border-color: var(--border);
-  --b-widget-border-radius: 0.9rem;
-  --b-widget-border-radius-large: 1.2rem;
-  --b-panel-background: var(--surface);
-  --b-popup-background: var(--surface-elevated);
-  --b-popup-color: var(--foreground);
-  --b-calendar-background: var(--surface);
-  --b-toolbar-background: var(--surface);
-  --b-grid-header-background: var(--surface-muted);
-  --b-grid-header-color: var(--foreground);
-  --b-grid-cell-color: var(--foreground);
-  --b-grid-cell-border-color: var(--border);
-  --b-grid-body-container-background: var(--surface);
-  --b-grid-row-border-color: var(--border);
-  --b-grid-cell-selected-background: var(--surface-strong);
-  --b-grid-cell-hover-background: var(--surface-muted);
-  --b-list-item-color: var(--foreground);
-  --b-list-item-hover-background: var(--surface-muted);
-  --b-day-view-background: var(--surface);
-  --b-day-view-border-color: var(--border);
-  --b-day-view-time-axis-color: var(--muted-foreground);
-  --b-day-view-time-axis-hour-color: var(--muted-foreground);
-  --b-day-view-hour-line-color: var(--border);
-  --b-day-view-half-hour-line-color: var(--border);
-  --b-day-view-today-background: var(--surface-strong);
-  --b-day-view-non-working-day-background: var(--surface-muted);
-  --b-calendar-view-cell-weekend-color: var(--foreground);
-  --b-calendar-view-header-cell-weekend-color: var(--muted-foreground);
-  --b-resourceheader-background: var(--surface-muted);
-  --b-resourceheader-color: var(--foreground);
-  --b-sch-header-timeaxis-cell-background: var(--surface-muted);
-  --b-sch-header-timeaxis-cell-color: var(--foreground);
-  --b-sch-header-timeaxis-tick-color: var(--border);
-  --b-sch-timeaxis-cell-border-color: var(--border);
-  --b-sch-column-line-color: var(--border);
-  --b-sch-row-border-color: var(--border);
+  --b-widget-color: var(--schedule-body-text);
+  --b-widget-border-color: var(--schedule-grid-line);
+  --b-widget-border-radius: 0.75rem;
+  --b-widget-border-radius-large: 1rem;
+  --b-panel-background: var(--schedule-surface);
+  --b-popup-background: var(--schedule-surface);
+  --b-popup-color: var(--schedule-body-text);
+  --b-calendar-background: var(--schedule-surface);
+  --b-toolbar-background: var(--schedule-surface);
+  --b-grid-header-background: var(--schedule-surface-muted);
+  --b-grid-header-color: var(--schedule-header-text);
+  --b-grid-cell-color: var(--schedule-body-text);
+  --b-grid-cell-border-color: var(--schedule-grid-line);
+  --b-grid-body-container-background: var(--schedule-surface);
+  --b-grid-row-border-color: var(--schedule-grid-line);
+  --b-grid-cell-selected-background: var(--schedule-surface-today);
+  --b-grid-cell-hover-background: var(--schedule-surface-muted);
+  --b-list-item-color: var(--schedule-body-text);
+  --b-list-item-hover-background: var(--schedule-surface-muted);
+  --b-day-view-background: var(--schedule-surface);
+  --b-day-view-border-color: var(--schedule-grid-line);
+  --b-day-view-time-axis-color: var(--schedule-muted-text);
+  --b-day-view-time-axis-hour-color: var(--schedule-muted-text);
+  --b-day-view-hour-line-color: var(--schedule-grid-line);
+  --b-day-view-half-hour-line-color: var(--schedule-grid-line);
+  --b-day-view-today-background: var(--schedule-surface-today);
+  --b-day-view-non-working-day-background: var(--schedule-surface-muted);
+  --b-calendar-view-cell-weekend-color: var(--schedule-body-text);
+  --b-calendar-view-header-cell-weekend-color: var(--schedule-muted-text);
+  --b-resourceheader-background: var(--schedule-surface-muted);
+  --b-resourceheader-color: var(--schedule-header-text);
+  --b-sch-header-timeaxis-cell-background: var(--schedule-surface-muted);
+  --b-sch-header-timeaxis-cell-color: var(--schedule-header-text);
+  --b-sch-header-timeaxis-tick-color: var(--schedule-grid-line);
+  --b-sch-timeaxis-cell-border-color: var(--schedule-grid-line);
+  --b-sch-column-line-color: var(--schedule-grid-line);
+  --b-sch-row-border-color: var(--schedule-grid-line);
   --b-sch-current-time-line-color: var(--accent);
 }
 
+.workspace-dark .schedule-bryntum {
+  --b-widget-color-scheme: dark;
+}
+
+.workspace-light .schedule-bryntum {
+  --b-widget-color-scheme: light;
+}
+
+.dark .workspace-dark .schedule-bryntum,
 .dark .schedule-bryntum {
   --b-widget-color-scheme: dark;
-  --b-panel-background: #0f172a;
-  --b-popup-background: #111c30;
-  --b-calendar-background: #0b1324;
-  --b-toolbar-background: #0f172a;
-  --b-grid-header-background: #162033;
-  --b-grid-header-color: #f8fafc;
-  --b-grid-cell-color: #e5edf8;
-  --b-grid-cell-border-color: rgba(148, 163, 184, 0.2);
-  --b-grid-body-container-background: #0f172a;
-  --b-grid-row-border-color: rgba(148, 163, 184, 0.18);
-  --b-grid-cell-selected-background: #1e2c45;
-  --b-grid-cell-hover-background: #162033;
-  --b-list-item-color: #e5edf8;
-  --b-list-item-hover-background: #162033;
-  --b-day-view-background: #0f172a;
-  --b-day-view-border-color: rgba(148, 163, 184, 0.2);
-  --b-day-view-time-axis-color: #9aa6ba;
-  --b-day-view-time-axis-hour-color: #9aa6ba;
-  --b-day-view-hour-line-color: rgba(148, 163, 184, 0.16);
-  --b-day-view-half-hour-line-color: rgba(148, 163, 184, 0.12);
-  --b-day-view-today-background: #1e2c45;
-  --b-day-view-non-working-day-background: #101a2d;
-  --b-calendar-view-cell-weekend-color: #f8fafc;
-  --b-calendar-view-header-cell-weekend-color: #94a3b8;
-  --b-resourceheader-background: #162033;
-  --b-resourceheader-color: #f8fafc;
-  --b-sch-header-timeaxis-cell-background: #162033;
-  --b-sch-header-timeaxis-cell-color: #f8fafc;
-  --b-sch-header-timeaxis-tick-color: rgba(148, 163, 184, 0.2);
-  --b-sch-timeaxis-cell-border-color: rgba(148, 163, 184, 0.2);
-  --b-sch-column-line-color: rgba(148, 163, 184, 0.18);
-  --b-sch-row-border-color: rgba(148, 163, 184, 0.18);
 }
 
 .schedule-bryntum,
@@ -351,11 +356,22 @@ body {
 .schedule-bryntum .b-calendar-view,
 .schedule-bryntum .b-day-view,
 .schedule-bryntum .b-month-view,
-.schedule-bryntum .b-weekview,
-.schedule-bryntum .b-widget {
+.schedule-bryntum .b-weekview {
   background: transparent !important;
-  color: var(--foreground) !important;
-  font-family: var(--font-open-sans), arial, sans-serif !important;
+  color: var(--schedule-body-text) !important;
+  font-family: var(--font-raleway), arial, sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+}
+
+.schedule-bryntum .b-cal-event-wrap,
+.schedule-bryntum .b-cal-event,
+.schedule-bryntum .b-cal-event-body,
+.schedule-bryntum .b-cal-event-name,
+.schedule-bryntum .b-cal-event-desc,
+.schedule-bryntum .b-sch-event,
+.schedule-bryntum .b-sch-event-content {
+  font-family: var(--font-raleway), arial, sans-serif !important;
+  -webkit-font-smoothing: antialiased;
 }
 
 .schedule-bryntum .b-calendar,
@@ -370,6 +386,20 @@ body {
   border: 0 !important;
 }
 
+.schedule-bryntum .b-day-view-day-container,
+.schedule-bryntum .b-day-view-schedule-container,
+.schedule-bryntum .b-monthview .b-calendar-cell,
+.schedule-bryntum .b-weekview .b-dayview-day-container {
+  background: var(--schedule-surface) !important;
+}
+
+.schedule-bryntum .b-calendar-row.b-calendar-days,
+.schedule-bryntum .b-calendar-row.b-calendar-weekdays,
+.schedule-bryntum .b-day-view-day-header,
+.schedule-bryntum .b-cal-cell-header {
+  background: var(--schedule-surface-muted) !important;
+}
+
 .schedule-bryntum .b-calendar .b-cal-event,
 .schedule-bryntum .b-sch-event {
   border: 0 !important;
@@ -377,58 +407,98 @@ body {
   box-shadow: none !important;
 }
 
-.schedule-bryntum .b-sch-event-content,
-.schedule-bryntum .b-cal-event-body,
-.schedule-bryntum .b-cal-event-name,
-.schedule-bryntum .b-cal-event-desc {
-  font-family: var(--font-open-sans), arial, sans-serif !important;
-}
-
 .schedule-bryntum .b-day-name,
 .schedule-bryntum .b-day-number,
 .schedule-bryntum .b-day-view-time-axis-time,
 .schedule-bryntum .b-grid-header-text,
-.schedule-bryntum .b-resourceheader-cell {
+.schedule-bryntum .b-resourceheader-cell,
+.schedule-bryntum .b-cal-cell-header,
+.schedule-bryntum .b-calendar-weekday,
+.schedule-bryntum .b-week-num,
+.schedule-bryntum .b-cal-event-name {
+  font-family: var(--font-raleway), arial, sans-serif !important;
   font-weight: 600;
+  color: var(--schedule-header-text) !important;
+}
+
+.schedule-bryntum .b-day-view-time-axis-time,
+.schedule-bryntum .b-calendar-view-header-cell-weekend,
+.schedule-bryntum .b-cal-event-desc,
+.schedule-bryntum .b-sch-event-content {
+  color: var(--schedule-muted-text) !important;
+  font-weight: 500;
 }
 
 .schedule-bryntum .b-grid-cell,
-.schedule-bryntum .b-grid-header {
-  border-color: var(--border) !important;
-}
-
+.schedule-bryntum .b-grid-header,
 .schedule-bryntum .b-cal-cell-header,
 .schedule-bryntum .b-calendar-cell,
 .schedule-bryntum .b-day-view-day-header,
 .schedule-bryntum .b-day-view-day-detail {
-  border-color: var(--border) !important;
+  border-color: var(--schedule-grid-line) !important;
 }
 
-.schedule-bryntum .b-grid-header-text,
-.schedule-bryntum .b-resourceheader-cell,
-.schedule-bryntum .b-day-name,
-.schedule-bryntum .b-day-number,
-.schedule-bryntum .b-day-view-time-axis-time {
-  color: var(--foreground) !important;
+.schedule-bryntum .b-today .b-day-number,
+.schedule-bryntum .b-cal-cell-header.b-today,
+.schedule-bryntum .b-day-view-day-header.b-today {
+  color: var(--accent) !important;
 }
 
+.schedule-bryntum .b-cal-event-wrap.b-past-event {
+  opacity: 0.82;
+}
+
+.schedule-bryntum .b-cal-event-wrap.b-past-event .schedule-calendar-event-title,
+.schedule-bryntum .b-cal-event-wrap.b-past-event .schedule-timeline-event-title {
+  color: inherit !important;
+}
+
+.schedule-calendar-event,
 .schedule-timeline-event {
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
+  gap: 0.25rem;
   min-height: 100%;
-  padding: 0.2rem 0.1rem;
+  padding: 0.2rem 0.15rem;
+  font-family: var(--font-raleway), arial, sans-serif;
 }
 
 .schedule-timeline-event-title {
   font-size: 0.875rem;
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.25;
+  color: inherit;
 }
 
 .schedule-timeline-event-meta {
   font-size: 0.75rem;
-  font-weight: 500;
-  line-height: 1.2;
-  opacity: 0.88;
+  font-weight: 600;
+  line-height: 1.25;
+  color: inherit;
+  opacity: 0.9;
+}
+
+.schedule-event-tag-strip {
+  display: flex;
+  width: 100%;
+  min-height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+}
+
+.schedule-event-tag-swatch {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 4px;
+}
+
+.schedule-calendar-event-title {
+  font-family: var(--font-raleway), arial, sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

@@ -5,9 +5,12 @@ import './bryntum-theme'
 import {
   addDays,
   addMonths,
+  applyScheduleEventStyle,
+  buildScheduleTagStripChildren,
   getEventEndDate,
   getEventResources,
   getEventStartDate,
+  getEventTagColors,
   getInitialScheduleDate,
   getLocaleCode,
   getScheduleResources,
@@ -20,7 +23,7 @@ import { useLocale } from '@contexts/dictionary-context'
 import { cn } from '@utils'
 import { CalendarDays, ChevronLeft, ChevronRight, PanelsTopLeft, Rows3 } from 'lucide-react'
 import dynamic from 'next/dynamic'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 const BryntumCalendar = dynamic(
   () => import('@bryntum/calendar-react').then((mod) => mod.BryntumCalendar),
@@ -29,13 +32,25 @@ const BryntumCalendar = dynamic(
   },
 )
 
+type EventDateChangeInput = {
+  id: string
+  starts_at: string
+  ends_at: string
+}
+
 type Props = {
   events: EventType[]
   tags: Pick<TagType, 'id' | 'name' | 'color'>[]
   onEventClick?: (event: EventType) => void
+  onEventDateChange?: (input: EventDateChangeInput) => Promise<void>
 }
 
 type CalendarMode = 'day' | 'week' | 'month'
+
+type CalendarEventModelShape = {
+  id?: string | number
+  name?: string
+}
 
 type CalendarEventClickContext = {
   eventRecord: {
@@ -45,6 +60,21 @@ type CalendarEventClickContext = {
 
 type CalendarDateChangeContext = {
   date: Date
+}
+
+type CalendarDragEndContext = {
+  eventRecord: {
+    id?: string | number
+    startDate: Date | string
+    endDate: Date | string
+  }
+}
+
+type CalendarEventRendererContext = {
+  eventRecord: CalendarEventModelShape
+  renderData: {
+    style?: Record<string, string>
+  }
 }
 
 const shiftCalendarDate = (value: Date, mode: CalendarMode, direction: number) => {
@@ -81,7 +111,7 @@ const formatCalendarTitle = (value: Date, mode: CalendarMode, localeCode: string
   return `${formatter.format(startDate)} - ${formatter.format(endDate)}`
 }
 
-export default function ProfileCalendar({ events, tags, onEventClick }: Props) {
+export default function ProfileCalendar({ events, tags, onEventClick, onEventDateChange }: Props) {
   const locale = useLocale()
   const localeCode = getLocaleCode(locale)
   const labels =
@@ -124,10 +154,59 @@ export default function ProfileCalendar({ events, tags, onEventClick }: Props) {
         startDate: getEventStartDate(event),
         endDate: getEventEndDate(event),
         resourceId: primaryResource?.id ?? defaultResourceId,
-        eventColor: primaryResource?.color,
+        tagColors: getEventTagColors(event),
+        focus: event.focus,
       }
     })
   }, [events, resources])
+
+  const persistEventDates = useCallback(
+    async ({ eventRecord }: CalendarDragEndContext) => {
+      if (!onEventDateChange) {
+        return true
+      }
+
+      const eventId = String(eventRecord.id)
+
+      try {
+        await onEventDateChange({
+          id: eventId,
+          starts_at: new Date(eventRecord.startDate).toISOString(),
+          ends_at: new Date(eventRecord.endDate).toISOString(),
+        })
+        return true
+      } catch {
+        return false
+      }
+    },
+    [onEventDateChange],
+  )
+
+  const renderCalendarEvent = useCallback(
+    ({ eventRecord, renderData }: CalendarEventRendererContext) => {
+      const model = eventRecord as CalendarEventModelShape
+      const sourceEvent = events.find((item) => item.id === String(model.id))
+      const tagColors = sourceEvent ? getEventTagColors(sourceEvent) : []
+      const focus = sourceEvent?.focus ?? 0
+
+      applyScheduleEventStyle(renderData, tagColors, focus)
+
+      return {
+        className: 'schedule-calendar-event',
+        children: [
+          {
+            className: 'schedule-event-tag-strip',
+            children: buildScheduleTagStripChildren(tagColors, focus),
+          },
+          {
+            className: 'schedule-calendar-event-title',
+            text: String(model.name ?? sourceEvent?.title ?? ''),
+          },
+        ],
+      }
+    },
+    [events],
+  )
 
   const setNavigatedDate = (value: Date) => {
     didNavigate.current = true
@@ -202,7 +281,11 @@ export default function ProfileCalendar({ events, tags, onEventClick }: Props) {
           sidebar={false}
           datePicker={false}
           tbar={null}
-          readOnly
+          autoCreate={false}
+          eventEditFeature={false}
+          modeDefaults={{
+            eventRenderer: renderCalendarEvent,
+          }}
           resources={resources.map((tag) => ({
             id: tag.id,
             name: tag.name,
@@ -217,6 +300,10 @@ export default function ProfileCalendar({ events, tags, onEventClick }: Props) {
             year: false,
             list: false,
           }}
+          onBeforeDragCreate={() => false}
+          onBeforeEventEdit={() => false}
+          onBeforeDragMoveEnd={persistEventDates}
+          onBeforeDragResizeEnd={persistEventDates}
           onDateChange={({ date }: CalendarDateChangeContext) => {
             didNavigate.current = true
             setCurrentDate(new Date(date))

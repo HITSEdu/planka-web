@@ -4,10 +4,13 @@ import './bryntum-theme'
 
 import {
   addDays,
+  applyScheduleEventStyle,
+  buildScheduleTagStripChildren,
   endOfWeek,
   getEventEndDate,
   getEventResources,
   getEventStartDate,
+  getEventTagColors,
   getInitialScheduleDate,
   getLocaleCode,
   getScheduleResources,
@@ -39,7 +42,7 @@ type TimelinePreset = 'week' | 'fortnight'
 
 type TimelineEventRecord = {
   sourceEventId?: string
-  eventColor?: string
+  tagColors?: string[]
   tagLabel?: string
   focus?: number
 }
@@ -54,24 +57,6 @@ type SchedulerEventClickContext = {
     id?: string | number
     data?: TimelineEventRecord
   }
-}
-
-const getContrastTextColor = (hex: string) => {
-  const normalized = hex.replace('#', '')
-  const safeHex =
-    normalized.length === 3
-      ? normalized
-          .split('')
-          .map((item) => `${item}${item}`)
-          .join('')
-      : normalized
-
-  const red = parseInt(safeHex.slice(0, 2), 16)
-  const green = parseInt(safeHex.slice(2, 4), 16)
-  const blue = parseInt(safeHex.slice(4, 6), 16)
-  const brightness = (red * 299 + green * 587 + blue * 114) / 1000
-
-  return brightness > 155 ? '#0F172A' : '#FFFFFF'
 }
 
 const getPresetRange = (value: Date, preset: TimelinePreset) => {
@@ -134,6 +119,7 @@ export default function ProfileTimeline({ events, tags, onEventClick }: Props) {
           endDate: getEventEndDate(event),
           resourceId: resource.id,
           eventColor: resource.color,
+          tagColors: getEventTagColors(event),
           tagLabel: resource.name,
           focus: event.focus,
         })),
@@ -242,18 +228,17 @@ export default function ProfileTimeline({ events, tags, onEventClick }: Props) {
           }}
           eventRenderer={({ eventRecord, renderData }) => {
             const eventData = (eventRecord as TimelineEventModelShape).data
-            const { eventColor = '#375FFF', focus = 0, tagLabel = '' } = eventData ?? {}
-            const textColor = getContrastTextColor(eventColor)
+            const { tagColors = [], focus = 0, tagLabel = '' } = eventData ?? {}
 
-            renderData.style = {
-              backgroundColor: eventColor,
-              color: textColor,
-              borderColor: eventColor,
-            }
+            applyScheduleEventStyle(renderData, tagColors, focus)
 
             return {
               className: 'schedule-timeline-event',
               children: [
+                {
+                  className: 'schedule-event-tag-strip',
+                  children: buildScheduleTagStripChildren(tagColors, focus),
+                },
                 {
                   className: 'schedule-timeline-event-title',
                   text: String((eventRecord as TimelineEventModelShape).name ?? ''),

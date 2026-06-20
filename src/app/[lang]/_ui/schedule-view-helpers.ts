@@ -42,6 +42,101 @@ export const getEventResources = (event: EventType): ScheduleResource[] =>
     ? event.tags.map(({ id, name, color }) => ({ id, name, color }))
     : [fallbackResource]
 
+export const getEventTagColors = (event: EventType) =>
+  getEventResources(event).map((resource) => resource.color)
+
+const normalizeHexColor = (hex: string) => {
+  const normalized = hex.replace('#', '')
+  return normalized.length === 3
+    ? normalized
+        .split('')
+        .map((item) => `${item}${item}`)
+        .join('')
+    : normalized
+}
+
+export const hexToRgba = (hex: string, alpha: number) => {
+  const safeHex = normalizeHexColor(hex)
+  const red = parseInt(safeHex.slice(0, 2), 16)
+  const green = parseInt(safeHex.slice(2, 4), 16)
+  const blue = parseInt(safeHex.slice(4, 6), 16)
+
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`
+}
+
+export const getEventFocusOpacity = (focus: number) => {
+  const clamped = Math.min(1, Math.max(0, focus))
+
+  return 0.2 + clamped * 0.8
+}
+
+export const getTagColorGradient = (colors: string[], focus = 1) => {
+  const alpha = getEventFocusOpacity(focus)
+  const palette = colors.length ? colors : [fallbackResource.color]
+
+  if (palette.length === 1) {
+    return hexToRgba(palette[0], alpha)
+  }
+
+  const segment = 100 / palette.length
+  const stops = palette
+    .map((color, index) => {
+      const start = (index * segment).toFixed(2)
+      const end = ((index + 1) * segment).toFixed(2)
+
+      return `${hexToRgba(color, alpha)} ${start}%, ${hexToRgba(color, alpha)} ${end}%`
+    })
+    .join(', ')
+
+  return `linear-gradient(90deg, ${stops})`
+}
+
+export const getContrastTextColor = (hex: string) => {
+  const safeHex = normalizeHexColor(hex)
+  const red = parseInt(safeHex.slice(0, 2), 16)
+  const green = parseInt(safeHex.slice(2, 4), 16)
+  const blue = parseInt(safeHex.slice(4, 6), 16)
+  const brightness = (red * 299 + green * 587 + blue * 114) / 1000
+
+  return brightness > 155 ? '#0F172A' : '#FFFFFF'
+}
+
+type ScheduleEventRenderData = {
+  style?: Record<string, string> | string
+}
+
+export const applyScheduleEventStyle = (
+  renderData: ScheduleEventRenderData,
+  tagColors: string[],
+  focus: number,
+) => {
+  const palette = tagColors.length ? tagColors : [fallbackResource.color]
+  const background = getTagColorGradient(palette, focus)
+  const textColor = getContrastTextColor(palette[0])
+  const baseStyle =
+    typeof renderData.style === 'string' || !renderData.style ? {} : renderData.style
+
+  renderData.style = {
+    ...baseStyle,
+    background,
+    color: textColor,
+    borderColor: palette[0],
+    fontFamily: 'var(--font-raleway), arial, sans-serif',
+  }
+}
+
+export const buildScheduleTagStripChildren = (tagColors: string[], focus: number) => {
+  const palette = tagColors.length ? tagColors : [fallbackResource.color]
+  const opacity = getEventFocusOpacity(focus)
+
+  return palette.map((color) => ({
+    className: 'schedule-event-tag-swatch',
+    style: {
+      backgroundColor: hexToRgba(color, opacity),
+    },
+  }))
+}
+
 export const getScheduleResources = (tags: ScheduleResource[], events: EventType[]) => {
   const resources = tags.map(({ id, name, color }) => ({ id, name, color }))
 
