@@ -144,7 +144,6 @@ function CalendarEventContent({ title, tagColors, focus, timeText }: CalendarEve
 
 export default function ProfileCalendar({
   events,
-  tags: _tags,
   onEventClick,
   onEventDateChange,
   themeKey = 'dark',

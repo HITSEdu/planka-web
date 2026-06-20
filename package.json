@@ -11,8 +11,6 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@bryntum/calendar": "npm:@bryntum/calendar-trial@^7.3.2",
-    "@bryntum/calendar-react": "^7.3.2",
     "@formatjs/intl-localematcher": "^0.8.2",
     "@fullcalendar/core": "^6.1.21",
     "@fullcalendar/daygrid": "^6.1.21",
