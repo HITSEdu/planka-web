@@ -36,6 +36,64 @@ const cardClassName = 'workspace-panel-solid rounded-[28px] p-5'
 
 const friendLabel = (friend: { name: string | null; email: string }) => friend.name ?? friend.email
 
+const friendInitials = (friend: { name: string | null; email: string }) => {
+  const source = friend.name ?? friend.email
+  const parts = source
+    .split(/\s+/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+
+  if (parts.length > 1) {
+    return parts
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join('')
+  }
+
+  return (source[0] ?? 'P').toUpperCase()
+}
+
+type FriendAvatarProps = {
+  user: {
+    name: string | null
+    email: string
+    avatar_url: string | null
+  }
+  size?: 'sm' | 'md' | 'lg'
+}
+
+const avatarSizeClassName = {
+  sm: 'size-12 text-base',
+  md: 'size-14 text-lg',
+  lg: 'size-16 text-xl',
+}
+
+function FriendAvatar({ user, size = 'md' }: FriendAvatarProps) {
+  const [failedSrc, setFailedSrc] = useState<string | null>(null)
+  const avatarSrc = user.avatar_url && failedSrc !== user.avatar_url ? user.avatar_url : null
+
+  return (
+    <div
+      className={cn(
+        'flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-[color:var(--border)] bg-[color:var(--surface-muted)] font-bold text-accent',
+        avatarSizeClassName[size],
+      )}
+    >
+      {avatarSrc ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={avatarSrc}
+          alt={friendLabel(user)}
+          className="size-full object-cover"
+          onError={() => setFailedSrc(avatarSrc)}
+        />
+      ) : (
+        <span>{friendInitials(user)}</span>
+      )}
+    </div>
+  )
+}
+
 export function FriendsWorkspace() {
   const toLocalized = useLocalizedPath()
   const { currentTheme, setTheme, workspaceThemeClass } = useResolvedWorkspaceTheme()
@@ -250,13 +308,16 @@ export function FriendsWorkspace() {
                       className="rounded-[24px] border border-[color:var(--border)] bg-[color:var(--surface)] p-4"
                     >
                       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                          <div className="text-lg font-semibold text-[color:var(--foreground)]">
-                            {friendLabel(request.user)}
-                          </div>
-                          <div className="mt-1 flex items-center gap-2 text-sm text-[color:var(--muted-foreground)]">
-                            <Mail className="size-4" />
-                            {request.user.email}
+                        <div className="flex min-w-0 items-center gap-3">
+                          <FriendAvatar size="sm" user={request.user} />
+                          <div className="min-w-0">
+                            <div className="truncate text-lg font-semibold text-[color:var(--foreground)]">
+                              {friendLabel(request.user)}
+                            </div>
+                            <div className="mt-1 flex items-center gap-2 text-sm text-[color:var(--muted-foreground)]">
+                              <Mail className="size-4 shrink-0" />
+                              <span className="truncate">{request.user.email}</span>
+                            </div>
                           </div>
                         </div>
 
@@ -325,13 +386,16 @@ export function FriendsWorkspace() {
                       key={request.id}
                       className="flex flex-col gap-4 rounded-[24px] border border-[color:var(--border)] bg-[color:var(--surface)] p-4 sm:flex-row sm:items-center sm:justify-between"
                     >
-                      <div>
-                        <div className="text-lg font-semibold text-[color:var(--foreground)]">
-                          {friendLabel(request.user)}
-                        </div>
-                        <div className="mt-1 flex items-center gap-2 text-sm text-[color:var(--muted-foreground)]">
-                          <Mail className="size-4" />
-                          {request.user.email}
+                      <div className="flex min-w-0 items-center gap-3">
+                        <FriendAvatar size="sm" user={request.user} />
+                        <div className="min-w-0">
+                          <div className="truncate text-lg font-semibold text-[color:var(--foreground)]">
+                            {friendLabel(request.user)}
+                          </div>
+                          <div className="mt-1 flex items-center gap-2 text-sm text-[color:var(--muted-foreground)]">
+                            <Mail className="size-4 shrink-0" />
+                            <span className="truncate">{request.user.email}</span>
+                          </div>
                         </div>
                       </div>
 
@@ -380,12 +444,17 @@ export function FriendsWorkspace() {
                     key={friend.id}
                     className="rounded-[26px] border border-[color:var(--border)] bg-[color:var(--surface)] p-5"
                   >
-                    <div className="text-xl font-semibold text-[color:var(--foreground)]">
-                      {friendLabel(friend)}
-                    </div>
-                    <div className="mt-2 flex items-center gap-2 text-sm text-[color:var(--muted-foreground)]">
-                      <Mail className="size-4" />
-                      {friend.email}
+                    <div className="flex min-w-0 items-start gap-4">
+                      <FriendAvatar size="lg" user={friend} />
+                      <div className="min-w-0">
+                        <div className="truncate text-xl font-semibold text-[color:var(--foreground)]">
+                          {friendLabel(friend)}
+                        </div>
+                        <div className="mt-2 flex items-center gap-2 text-sm text-[color:var(--muted-foreground)]">
+                          <Mail className="size-4 shrink-0" />
+                          <span className="truncate">{friend.email}</span>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="mt-4 rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface-muted)] px-4 py-3 text-sm text-[color:var(--muted-foreground)]">

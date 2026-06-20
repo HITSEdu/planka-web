@@ -6,6 +6,7 @@ export const friendUserSchema = z.object({
   id: z.string(),
   email: z.email(),
   name: z.string().nullable(),
+  avatar_url: z.string().nullable(),
 })
 
 export const friendSchema = friendUserSchema.extend({
